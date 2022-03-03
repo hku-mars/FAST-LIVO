@@ -27,7 +27,7 @@ Click below images to open our accompanying video.
 Our code, private datasets and hard sychronized handheld device would be released asap. Thanks for your patience.
 
 ### Acknowledgments
-Thanks for [Fast-LIO2](https://github.com/hku-mars/FAST_LIO) and [SVO2.0](https://github.com/uzh-rpg/rpg_svo_pro_open).
+Thanks for [FAST-LIO2](https://github.com/hku-mars/FAST_LIO) and [SVO2.0](https://github.com/uzh-rpg/rpg_svo_pro_open).
 
 Thanks for [Livox Technology](https://www.livoxtech.com/) for equipment support.
 
