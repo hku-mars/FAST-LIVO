@@ -14,10 +14,10 @@
 Our related paper is now available on **arXiv**:  [FAST-LIVO: Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry](https://arxiv.org/abs/2203.00893).
 
 ### Related Video
-Click below images to open our accompanying video.
+Click below images to open our accompanying video on **YouTube**.
 
 <div align="center">
-<a href="https://drive.google.com/file/d/1PM8R4JFvYo_PjE4LzdS5WYh-rnj1Ceuw/view?usp=sharing" target="_blank"><img src="img/cover.bmp" alt="video" width="60%" /></a>
+<a href="https://www.youtube.com/watch?v=C6Pb_0W9E_g" target="_blank"><img src="img/cover.bmp" alt="video" width="60%" /></a>
 
 </div>
 
