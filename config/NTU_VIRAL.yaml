@@ -1,0 +1,47 @@
+feature_extract_enable : 0
+point_filter_num : 4
+max_iteration : 10
+dense_map_enable : 1
+filter_size_surf : 0.5 # 0.3
+filter_size_map : 0.5 # 0.4
+cube_side_length : 20 
+debug : 1
+grid_size : 40
+patch_size : 8
+img_enable : 1
+lidar_enable : 1
+outlier_threshold : 50
+ncc_en: true
+ncc_thre: 0.5
+img_point_cov : 1000
+laser_point_cov : 0.001
+cam_fx: 4.250258563372763e+02
+cam_fy: 4.267976260903337e+02
+cam_cx: 3.860151866550880e+02
+cam_cy: 2.419130336743440e+02
+
+common:
+    lid_topic:  "/os1_cloud_node1/points"
+    imu_topic:  "/os1_cloud_node1/imu"
+
+preprocess:
+    lidar_type: 3  # Ouster
+    scan_line: 16
+    blind: 4 # blind x m disable
+
+mapping:
+    acc_cov_scale: 100 #10
+    gyr_cov_scale: 10000 #10
+    fov_degree:    180
+    extrinsic_T: [ 0.0, 0.0, 0.0]
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+
+camera:
+    img_topic: /left/image_raw 
+    # NTU_VIRAL
+    Rcl: [0.0218308, 0.99976, -0.00201407,
+         -0.0131205, 0.00230088, 0.999911,
+          0.999676, -0.0218025, 0.0131676]
+    Pcl: [0.122993,  0.0398643, -0.0577101]

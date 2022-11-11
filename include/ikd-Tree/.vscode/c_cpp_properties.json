@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/zqykawayi/FAST_LIO_L515_ws/devel/include/**",
+        "/home/zqykawayi/livox_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/zqykawayi/FAST_LIO_L515_ws/src/FAST_LIO/include/**",
+        "/home/zqykawayi/spatial_ws/src/spatial/include/**",
+        "/home/zqykawayi/FAST_LIO_L515_ws/src/rpg_vikit/vikit_common/include/**",
+        "/home/zqykawayi/FAST_LIO_L515_ws/src/rpg_vikit/vikit_ros/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

@@ -1,0 +1,23 @@
+<launch>
+<!-- Launch file for Livox AVIA LiDAR -->
+
+	<arg name="rviz" default="true" />
+
+	<!-- <arg name="bag_name" value="/media/chunran/Chunran/rosbag/mtr/xu2_new.bag"/> -->
+
+	<!-- <node pkg="rosbag" type="play" name="rosbag" args="-r 1.0 -s 0.0 $(arg bag_name)"/> -->
+
+	<rosparam command="load" file="$(find fast_livo)/config/avia_resize.yaml" />
+
+	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
+		<rosparam file="$(find fast_livo)/config/camera_pinhole_resize.yaml" />
+	</node>
+	
+	<group if="$(arg rviz)">
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox.rviz" />
+	</group>
+	<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/left_camera/image raw out:=/left_camera/image" output="screen" respawn="true"/>
+
+launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
+
+</launch> 	
