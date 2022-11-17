@@ -100,6 +100,7 @@ Edit `config/xxx.yaml` to set the below parameters:
 - `img_topic`: The topic name of camera data.
 - `img_enable`: Enbale vio submodule.
 - `lidar_enable`: Enbale lio submodule.
+- `point_filter_num`: The sampling interval for a new scan. It is recommended that `3~4` for faster odometry, `1~2` for denser map.
 - `outlier_threshold`: The outlier threshold value of photometric error (square) of a single pixel. It is recommended that `50~250` for the darker scenes, `500~1000` for the brighter scenes. The smaller the value is, the faster the vio submodule is, but the weaker the anti-degradation ability is.
 - `img_point_cov`: The covariance of photometric errors per pixel. 
 - `laser_point_cov`: The covariance of point-to-plane redisual per point. 
@@ -113,14 +114,14 @@ After setting the appropriate topic name and parameters, you can directly run **
 Download our collected rosbag files via OneDrive ([FAST-LIVO-Datasets](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/zhengcr_connect_hku_hk/Esiqlmaql0dPreuOhiHlXl4Bqu5RRRIViK1EyuR4h1_n4w?e=fZdVn0)) containing **4** rosbag files.
 
 ```
-roslaunch fast-livo mapping_avia.launch
+roslaunch fast_livo mapping_avia.launch
 rosbag play YOUR_DOWNLOADED.bag
 ```
 
 ### 4.3 Run on benchmark dataset (NTU-VIRAL)
 
 ```
-roslaunch fast-livo mapping_avia_ntu.launch
+roslaunch fast_livo mapping_avia_ntu.launch
 rosbag play YOUR_DOWNLOADED.bag
 ```
 

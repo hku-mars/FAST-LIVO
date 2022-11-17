@@ -1,5 +1,5 @@
 feature_extract_enable : 0
-point_filter_num : 1
+point_filter_num : 2
 max_iteration : 10
 dense_map_enable : 1
 filter_size_surf : 0.15
