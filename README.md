@@ -89,7 +89,7 @@ source ~/catkin_ws/devel/setup.bash
 
 ## 4. Run the package
 
-Please note that our system can only work in the hard synchronized LiDAR-Inertial-Visual dataset at present due to the unestimated time offset between the camera and IMU.
+Please note that our system can only work in the hard synchronized LiDAR-Inertial-Visual dataset at present due to the unestimated time offset between the camera and IMU. The frame headers of the camera and the LiDAR are at the same phisical trigger time.
 
 ### 4.1 Important parameters
 
