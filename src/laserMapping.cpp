@@ -479,7 +479,7 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg_in)
 
 cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr& img_msg) {
   cv::Mat img;
-  img = cv_bridge::toCvShare(img_msg, "bgr8")->image;
+  img = cv_bridge::toCvCopy(img_msg, "bgr8")->image;
   return img;
 }
 
