@@ -127,7 +127,9 @@ rosbag play YOUR_DOWNLOADED.bag
 
 ## 5. Our hard sychronized equipment
 
-To make it easier for our users to reproduce our work and benefit the robotics community, we provide the **CAD files** (with suffix “\*.SLDPRT and \*.SLDASM”) for our handheld device, which can be opened and edited with [Solidworks](https://www.solidworks.com). All of the modules are suitable for printing with [FDM (Fused Deposition Modeling)](https://en.wikipedia.org/wiki/Fused_filament_fabrication). In addition, we have also open-sourced our **hardware synchronization scheme**, as well as the **STM32 source code** and **hardware wiring configuration** instructions. Here is the [link](https://github.com/sheng00125/LIV_handhold).
+**[Update]** To support the robotics community and enhance the reproducibility of our work, we provide CAD files for our handheld device, available in ".SLDPRT" and ".SLDASM" formats. These files can be opened and edited using Solidworks. Each module is designed for compatibility with FDM (Fused Deposition Modeling) technology, ensuring ease of 3D printing. Additionally, we open-source our **hardware synchronization scheme**, the **STM32 source code**, detailed **hardware wiring configuration instructions**, and **sensor ros driver**. Access these resources at our repository: [**LIV_handhold**](https://github.com/sheng00125/LIV_handhold).
+
+![principle](./img/cover.jpg)
 
 ## 6. Acknowledgments
 
