@@ -22,6 +22,7 @@ Preprocess::Preprocess()
   edgeb = 0.1;
   smallp_intersect = 172.5;
   smallp_ratio = 1.2;
+  given_offset_time = false;
 
   jump_up_limit = cos(jump_up_limit/180*M_PI);
   jump_down_limit = cos(jump_down_limit/180*M_PI);
@@ -56,6 +57,10 @@ void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointClo
   case VELO16:
     velodyne_handler(msg);
     break;
+
+  case XT32:
+    xt32_handler(msg);
+    break;
   
   default:
     printf("Error LiDAR Type");
@@ -63,6 +68,7 @@ void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointClo
   }
   *pcl_out = pl_surf;
 }
+
 
 void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
 {
@@ -255,6 +261,8 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
   // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
 
+#define MAX_LINE_NUM 64
+
 void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
     pl_surf.clear();
@@ -266,14 +274,14 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     uint plsize = pl_orig.points.size();
     pl_surf.reserve(plsize);
 
-    bool is_first[16];
-    bool is_jump[16]={false};       // if jump point
-    double yaw_fp[20]={0};     // yaw of first scan point
+    bool is_first[MAX_LINE_NUM];
+    bool is_jump[MAX_LINE_NUM]={false};       // if jump point
+    double yaw_fp[MAX_LINE_NUM]={0};     // yaw of first scan point
     int layer;                 // layer number
     double omega_l=3.61;       // scan angular velocity
-    float yaw_last[16]={0.0};  // yaw of last scan point
-    float time_last[16]={0.0}; // last offset time
-    float time_jump[16]={0.0}; // offset time before jump
+    float yaw_last[MAX_LINE_NUM]={0.0};  // yaw of last scan point
+    float time_last[MAX_LINE_NUM]={0.0}; // last offset time
+    float time_jump[MAX_LINE_NUM]={0.0}; // offset time before jump
     memset(is_first, true, sizeof(is_first));
 
     double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;
@@ -424,6 +432,82 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     // pub_func(pl_surf, pub_surf, msg->header.stamp);
     // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
+
+void Preprocess::xt32_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
+{
+  pl_surf.clear();
+  pl_corn.clear();
+  pl_full.clear();
+
+  pcl::PointCloud<xt32_ros::Point> pl_orig;
+  pcl::fromROSMsg(*msg, pl_orig);
+  int plsize = pl_orig.points.size();
+  pl_surf.reserve(plsize);
+
+  bool is_first[MAX_LINE_NUM];
+  double yaw_fp[MAX_LINE_NUM] = {0};     // yaw of first scan point
+  double omega_l = 3.61;                 // scan angular velocity
+  float yaw_last[MAX_LINE_NUM] = {0.0};  // yaw of last scan point
+  float time_last[MAX_LINE_NUM] = {0.0}; // last offset time
+
+  if (pl_orig.points[plsize - 1].timestamp > 0) { given_offset_time = true; }
+  else
+  {
+    given_offset_time = false;
+    memset(is_first, true, sizeof(is_first));
+    double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;
+    double yaw_end = yaw_first;
+    int layer_first = pl_orig.points[0].ring;
+    for (uint i = plsize - 1; i > 0; i--)
+    {
+      if (pl_orig.points[i].ring == layer_first)
+      {
+        yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
+        break;
+      }
+    }
+  }
+
+  double time_head = pl_orig.points[0].timestamp;
+
+  for (int i = 0; i < plsize; i++)
+  {
+    PointType added_pt;
+    // cout<<"!!!!!!"<<i<<" "<<plsize<<endl;
+
+    added_pt.normal_x = 0;
+    added_pt.normal_y = 0;
+    added_pt.normal_z = 0;
+    added_pt.x = pl_orig.points[i].x;
+    added_pt.y = pl_orig.points[i].y;
+    added_pt.z = pl_orig.points[i].z;
+    added_pt.intensity = pl_orig.points[i].intensity;
+    added_pt.curvature = (pl_orig.points[i].timestamp - time_head) * 1000.f;
+
+    // printf("added_pt.curvature: %lf %lf \n", added_pt.curvature,
+    // pl_orig.points[i].timestamp);
+
+    // if(i==(plsize-1))  printf("index: %d layer: %d, yaw: %lf, offset-time:
+    // %lf, condition: %d\n", i, layer, yaw_angle, added_pt.curvature,
+    // prints);
+    if (i % point_filter_num == 0)
+    {
+      if (added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z > blind)
+      {
+        pl_surf.points.push_back(added_pt);
+        // printf("time mode: %d time: %d \n", given_offset_time,
+        // pl_orig.points[i].t);
+      }
+    }
+  }
+  
+  // pub_func(pl_surf, pub_full, msg->header.stamp);
+  // pub_func(pl_surf, pub_surf, msg->header.stamp);
+  // pub_func(pl_surf, pub_corn, msg->header.stamp);
+}
+
+
+
 
 void Preprocess::give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types)
 {

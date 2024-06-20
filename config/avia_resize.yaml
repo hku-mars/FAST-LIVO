@@ -15,17 +15,17 @@ ncc_en: false
 ncc_thre: 0
 img_point_cov : 100 # 1000
 laser_point_cov : 0.001 # 0.001
-cam_fx: 453.483063
-cam_fy: 453.254913
-cam_cx: 318.908851
-cam_cy: 234.238189
+cam_fx: 431.795259219
+cam_fy: 431.550090267
+cam_cx: 310.833037316
+cam_cy: 266.985989326
 
 common:
     lid_topic:  "/livox/lidar"
     imu_topic:  "/livox/imu"
 
 preprocess:
-    lidar_type: 1 # Livox Avia LiDAR
+    lidar_type: 1 # 1:Livox Avia LiDAR  2:VELO16  3:OUST64  4:XT32 
     scan_line: 6
     blind: 5 # blind x m disable
 
@@ -37,6 +37,10 @@ mapping:
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
                    0, 0, 1]
+
+pcd_save:
+    pcd_save_en: true
+    interval: -1
 
 camera:
     # img_topic: /usb_cam/image_raw

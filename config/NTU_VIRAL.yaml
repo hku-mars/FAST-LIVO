@@ -38,6 +38,10 @@ mapping:
                    0, 1, 0,
                    0, 0, 1]
 
+pcd_save:
+    pcd_save_en: true
+    interval: -1
+
 camera:
     img_topic: /left/image_raw 
     # NTU_VIRAL

@@ -206,6 +206,13 @@ geometry_msgs::PoseStamped msg_body_pose;
 
 shared_ptr<Preprocess> p_pre(new Preprocess());
 
+PointCloudXYZRGB::Ptr pcl_wait_save(new PointCloudXYZRGB());  //add save rbg map
+PointCloudXYZI::Ptr pcl_wait_save_lidar(new PointCloudXYZI());  //add save xyzi map
+
+bool pcd_save_en = true;
+int pcd_save_interval = 20, pcd_index = 0;
+
+
 void SigHandle(int sig)
 {
     flg_exit = true;
@@ -766,6 +773,10 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
         // pcl_wait_pub->clear();
     }
     // mtx_buffer_pointcloud.unlock();
+    /**************** save map ****************/
+    /* 1. make sure you have enough memories
+    /* 2. noted that pcd save will influence the real-time performences **/
+    if (pcd_save_en) *pcl_wait_save += *laserCloudWorldRGB;          
 }
 
 void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
@@ -800,6 +811,7 @@ void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
         // pcl_wait_pub->clear();
     }
     // mtx_buffer_pointcloud.unlock();
+    if (pcd_save_en) *pcl_wait_save_lidar += *pcl_wait_pub;
 }
 
 void publish_visual_world_map(const ros::Publisher & pubVisualCloud)
@@ -1122,6 +1134,9 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<int>("patch_size", patch_size, 4);
     nh.param<double>("outlier_threshold",outlier_threshold,100);
     nh.param<double>("ncc_thre", ncc_thre, 100);
+
+    nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
+
 }
 
 int main(int argc, char** argv)
@@ -1373,7 +1388,7 @@ int main(int argc, char** argv)
                 out_msg.image = img_rgb;
                 img_pub.publish(out_msg.toImageMsg());
 
-                publish_frame_world_rgb(pubLaserCloudFullResRgb, lidar_selector);
+                if(img_en) publish_frame_world_rgb(pubLaserCloudFullResRgb, lidar_selector);
                 publish_visual_world_sub_map(pubSubVisualCloud);
                 
                 // *map_cur_frame_point = *pcl_wait_pub;
@@ -1758,7 +1773,7 @@ int main(int argc, char** argv)
         }
         *pcl_wait_pub = *laserCloudWorld;
 
-        publish_frame_world(pubLaserCloudFullRes);
+        if(!img_en) publish_frame_world(pubLaserCloudFullRes);
         // publish_visual_world_map(pubVisualCloud);
         publish_effect_world(pubLaserCloudEffect);
         // publish_map(pubLaserCloudMap);
@@ -1820,6 +1835,32 @@ int main(int argc, char** argv)
     // pcd_writer.writeBinary(corner_filename, corner_points);
     // }
 
+         /**************** save map ****************/
+    /* 1. make sure you have enough memories
+    /* 2. pcd save will largely influence the real-time performences **/
+    if (pcl_wait_save->size() > 0 && pcd_save_en)
+    {
+        // string file_name = string("saved.pcd");
+        // string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
+        string all_points_dir = "/home/sheng/Downloads/yty_bag/rgb_saved.pcd";
+        pcl::PCDWriter pcd_writer;
+        cout << "current rgb scan saved" << endl;
+        pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
+    }
+
+    if (pcl_wait_save_lidar->size() > 0 && pcd_save_en)
+    {
+        // string file_name = string("saved.pcd");
+        // string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
+        string all_points_dir = "/home/sheng/Downloads/yty_bag/xyzi_saved.pcd";
+        pcl::PCDWriter pcd_writer;
+        cout << "current xyzi scan saved" << endl;
+        pcd_writer.writeBinary(all_points_dir, *pcl_wait_save_lidar);
+    }
+
+    fout_out.close();
+    fout_pre.close();
+
     #ifndef DEPLOY
     vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
     FILE *fp2;
@@ -1849,8 +1890,6 @@ int main(int argc, char** argv)
         // plt::pause(0.5);
         // plt::close();
     }
-    cout << "no points saved" << endl;
     #endif
-
     return 0;
 }
