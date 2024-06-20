@@ -40,7 +40,6 @@ mapping:
 
 pcd_save:
     pcd_save_en: true
-    interval: -1
 
 camera:
     img_topic: /left/image_raw 

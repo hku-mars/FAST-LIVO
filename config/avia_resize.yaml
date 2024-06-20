@@ -26,13 +26,13 @@ common:
 
 preprocess:
     lidar_type: 1 # 1:Livox Avia LiDAR  2:VELO16  3:OUST64  4:XT32 
-    scan_line: 6
+    scan_line: 6 # 16  64  32
     blind: 5 # blind x m disable
 
 mapping:
     acc_cov_scale: 100
     gyr_cov_scale: 10000
-    fov_degree:    90
+    fov_degree:    90 # 360
     extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
@@ -40,7 +40,6 @@ mapping:
 
 pcd_save:
     pcd_save_en: true
-    interval: -1
 
 camera:
     # img_topic: /usb_cam/image_raw
