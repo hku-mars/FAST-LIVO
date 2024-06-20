@@ -106,6 +106,7 @@ Edit `config/xxx.yaml` to set the below parameters:
 - `laser_point_cov`: The covariance of point-to-plane redisual per point. 
 - `filter_size_surf`: Downsample the points in a new scan. It is recommended that `0.05~0.15` for indoor scenes, `0.3~0.5` for outdoor scenes.
 - `filter_size_map`: Downsample the points in LiDAR global map. It is recommended that `0.15~0.3` for indoor scenes, `0.4~0.5` for outdoor scenes.
+- `pcd_save_en:`: If `true`, save point clouds to the PCD folder. Save RGB-colored points if `img_enable` is `1`, intensity-colored points if `img_enable` is `0`.
 
 After setting the appropriate topic name and parameters, you can directly run **FAST-LIVO** on the dataset.
 
