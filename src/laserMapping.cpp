@@ -1156,8 +1156,6 @@ int main(int argc, char** argv)
     image_transport::Publisher img_pub = it.advertise("/rgb_img", 1);
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_registered", 100);
-    ros::Publisher pubLaserCloudFullResRgb = nh.advertise<sensor_msgs::PointCloud2>
-            ("/cloud_registered_rgb", 100);
     ros::Publisher pubVisualCloud = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_visual_map", 100);
     ros::Publisher pubSubVisualCloud = nh.advertise<sensor_msgs::PointCloud2>
@@ -1388,7 +1386,7 @@ int main(int argc, char** argv)
                 out_msg.image = img_rgb;
                 img_pub.publish(out_msg.toImageMsg());
 
-                if(img_en) publish_frame_world_rgb(pubLaserCloudFullResRgb, lidar_selector);
+                if(img_en) publish_frame_world_rgb(pubLaserCloudFullRes, lidar_selector);
                 publish_visual_world_sub_map(pubSubVisualCloud);
                 
                 // *map_cur_frame_point = *pcl_wait_pub;
@@ -1840,9 +1838,8 @@ int main(int argc, char** argv)
     /* 2. pcd save will largely influence the real-time performences **/
     if (pcl_wait_save->size() > 0 && pcd_save_en)
     {
-        // string file_name = string("saved.pcd");
-        // string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
-        string all_points_dir = "/home/sheng/Downloads/yty_bag/rgb_saved.pcd";
+        string file_name = string("rgb_scan_all.pcd");
+        string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
         pcl::PCDWriter pcd_writer;
         cout << "current rgb scan saved" << endl;
         pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
@@ -1850,11 +1847,10 @@ int main(int argc, char** argv)
 
     if (pcl_wait_save_lidar->size() > 0 && pcd_save_en)
     {
-        // string file_name = string("saved.pcd");
-        // string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
-        string all_points_dir = "/home/sheng/Downloads/yty_bag/xyzi_saved.pcd";
+        string file_name = string("intensity_sacn_all.pcd");
+        string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
         pcl::PCDWriter pcd_writer;
-        cout << "current xyzi scan saved" << endl;
+        cout << "current intensity scan saved" << endl;
         pcd_writer.writeBinary(all_points_dir, *pcl_wait_save_lidar);
     }
 
