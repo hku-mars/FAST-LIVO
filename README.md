@@ -2,6 +2,10 @@
 
 ## Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry
 
+**3 July 2024**: We are excited to announce the upcoming release of [**FAST-LIVO2**](https://github.com/hku-mars/FAST-LIVO2) (some high-resolution results are already showcased). This new version delivers a **overwhelming enhancement** over **FAST-LIVO**, establishing an **undisputed state-of-the-art** in accuracy **(pixel-level)**, efficiency **(the first LIVO system applied for fully onboard autonomous UAV navigation)**, and robustness **(validated with over 2TB data, demonstrating exceptional performance in numerous degenerated LiDAR and camera scenarios)**.
+
+**7 Dec 2023**: A **detailed step-by-step guide** for hard synchronization between Livox Mid-360/Avia and camera is published at [**LIV_hanheld**](https://github.com/sheng00125/LIV_handhold).
+
 ## 1. Introduction
 
 **FAST-LIVO** is a fast LiDAR-Inertial-Visual odometry system, which builds on two tightly-coupled and direct odometry subsystems: a VIO subsystem and a LIO subsystem. The LIO subsystem registers raw points (instead of feature points on e.g., edges or planes) of a new scan to an incrementally-built point cloud map. The map points are additionally attached with image patches, which are then used in the VIO subsystem to align a new image by minimizing the direct photometric errors without extracting any visual features (e.g., ORB or FAST corner features).
