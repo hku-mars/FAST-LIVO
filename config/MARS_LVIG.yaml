@@ -1,0 +1,54 @@
+feature_extract_enable : 0
+point_filter_num : 1
+max_iteration : 10
+dense_map_enable : 1
+filter_size_surf : 0.15
+filter_size_map : 0.3
+cube_side_length : 20
+grid_size : 60
+patch_size : 8
+img_enable : 1
+lidar_enable : 1
+outlier_threshold : 300 # 78 100 156
+ncc_en: false
+ncc_thre: 0
+img_point_cov : 100 # 1000
+laser_point_cov : 0.001 # 0.001
+delta_time: 0.0 # img_lidar_time_diff 
+# HKisland01: 0.0 -s 90 |===| HKisland02: 0.1 -s 75 |===| HKisland03: -0.1 -s 72
+# HKairport01: -0.1 -s 75 |===| HKairport02: -0.1 -s 60 |===| HKairport03: -0.1 -s 62
+# AMtown01: -0.1 -s 70 |===| AMtown02: 0.1 -s 65 |===| AMtown03: -0.1 -s 50
+# AMvalley01: 0.0 -s 80 |===| AMvalley02: -0.1 -s 80 |===| AMvalley03: -0.1 -s 80
+
+common:
+    lid_topic:  "/livox/lidar"
+    imu_topic:  "/livox/imu"
+
+preprocess:
+    lidar_type: 1 # 1:Livox Avia LiDAR  2:VELO16  3:OUST64  4:XT32 
+    scan_line: 6 # 16  64  32
+    blind: 5 # blind x m disable
+
+mapping:
+    acc_cov_scale: 100
+    gyr_cov_scale: 10000
+    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+
+pcd_save:
+    pcd_save_en: false
+
+camera:
+    img_topic: /left_camera/image
+    # MARS_LVIG HKisland HKairport
+    Rcl: [0.00438814,-0.999807,-0.0191582,
+         -0.00978695,0.0191145,-0.999769,
+          0.999942,0.00457463,-0.00970118]
+    Pcl: [0.016069, 0.0871753, -0.0718021]
+    # MARS_LVIG AMtown AMvalley
+    # Rcl: [0.00298068,-0.999735,-0.0231428,
+    #      -0.00504595,0.0231320,-0.999740,
+    #       0.999985,0.00309701,-0.00497598]
+    # Pcl: [-0.0025563, 0.0567484, -0.0512149] 

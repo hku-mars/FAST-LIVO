@@ -114,8 +114,8 @@ double gyr_cov_scale = 0, acc_cov_scale = 0;
 double last_timestamp_lidar = 0, last_timestamp_imu = -1.0, last_timestamp_img = -1.0;
 //double filter_size_corner_min, filter_size_surf_min, filter_size_map_min, fov_deg;
 double filter_size_corner_min = 0, filter_size_surf_min = 0, filter_size_map_min = 0, fov_deg = 0;
-//double cube_len, HALF_FOV_COS, FOV_DEG, total_distance, lidar_end_time, first_lidar_time = 0.0;
-double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
+//double cube_len, HALF_FOV_COS, total_distance, lidar_end_time, first_lidar_time = 0.0;
+double cube_len = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
 double first_img_time=-1.0;
 //double kdtree_incremental_time, kdtree_search_time;
 double kdtree_incremental_time = 0, kdtree_search_time = 0, kdtree_delete_time = 0.0;
@@ -135,6 +135,7 @@ int debug = 0;
 bool fast_lio_is_ready = false;
 int grid_size, patch_size;
 double outlier_threshold, ncc_thre;
+double delta_time = 0.0;
 
 vector<BoxPointType> cub_needrm;
 vector<BoxPointType> cub_needad;
@@ -492,30 +493,24 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr& img_msg) {
 
 void img_cbk(const sensor_msgs::ImageConstPtr& msg)
 {
-    // cout<<"In Img_cbk"<<endl;
-    // if (first_img_time<0 && time_buffer.size()>0) {
-    //     first_img_time = msg->header.stamp.toSec() - time_buffer.front();
-    // }
     if (!img_en) 
     {
         return;
     }
-    printf("[ INFO ]: get img at time: %.6f.\n", msg->header.stamp.toSec());
-    if (msg->header.stamp.toSec() < last_timestamp_img)
+    double msg_header_time = msg->header.stamp.toSec() + delta_time;
+    printf("[ INFO ]: get img at time: %.6f.\n", msg_header_time);
+    if (msg_header_time < last_timestamp_img)
     {
         ROS_ERROR("img loop back, clear buffer");
         img_buffer.clear();
         img_time_buffer.clear();
     }
     mtx_buffer.lock();
-    // cout<<"Lidar_buff.size()"<<lidar_buffer.size()<<endl;
-    // cout<<"Imu_buffer.size()"<<imu_buffer.size()<<endl;
+
     img_buffer.push_back(getImageFromMsg(msg));
-    img_time_buffer.push_back(msg->header.stamp.toSec());
-    last_timestamp_img = msg->header.stamp.toSec();
-    // cv::imshow("img", img);
-    // cv::waitKey(1);
-    // cout<<"last_timestamp_img:::"<<last_timestamp_img<<endl;
+    img_time_buffer.push_back(msg_header_time);
+    last_timestamp_img = msg_header_time;
+
     mtx_buffer.unlock();
     sig_buffer.notify_all();
 }
@@ -727,6 +722,7 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
     if(img_en)
     {
         laserCloudWorldRGB->clear();
+        cv::Mat img_rgb = lidar_selector->img_rgb;
         for (int i=0; i<size; i++)
         {
             PointTypeRGB pointRGB;
@@ -737,8 +733,6 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
             V2D pc(lidar_selector->new_frame_->w2c(p_w));
             if (lidar_selector->new_frame_->cam_->isInFrame(pc.cast<int>(),0))
             {
-                // cv::Mat img_cur = lidar_selector->new_frame_->img();
-                cv::Mat img_rgb = lidar_selector->img_rgb;
                 V3F pixel = lidar_selector->getpixel(img_rgb, pc);
                 pointRGB.r = pixel[2];
                 pointRGB.g = pixel[1];
@@ -1104,21 +1098,20 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<int>("max_iteration",NUM_MAX_ITERATIONS,4);
     nh.param<bool>("ncc_en",ncc_en,false);
     nh.param<int>("min_img_count",MIN_IMG_COUNT,1000);    
-    nh.param<double>("cam_fx",cam_fx,453.483063);
-    nh.param<double>("cam_fy",cam_fy,453.254913);
-    nh.param<double>("cam_cx",cam_cx,318.908851);
-    nh.param<double>("cam_cy",cam_cy,234.238189);
+    nh.param<double>("laserMapping/cam_fx",cam_fx, 400);
+    nh.param<double>("laserMapping/cam_fy",cam_fy, 400);
+    nh.param<double>("laserMapping/cam_cx",cam_cx, 300);
+    nh.param<double>("laserMapping/cam_cy",cam_cy, 300);
     nh.param<double>("laser_point_cov",LASER_POINT_COV,0.001);
     nh.param<double>("img_point_cov",IMG_POINT_COV,10);
     nh.param<string>("map_file_path",map_file_path,"");
     nh.param<string>("common/lid_topic",lid_topic,"/livox/lidar");
     nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
-    nh.param<string>("camera/img_topic", img_topic,"/usb_cam/image_raw");
+    nh.param<string>("camera/img_topic", img_topic,"/left_camera/image");
     nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
     nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
     nh.param<double>("filter_size_map",filter_size_map_min,0.5);
     nh.param<double>("cube_side_length",cube_len,200);
-    nh.param<double>("mapping/fov_degree",fov_deg,180);
     nh.param<double>("mapping/gyr_cov_scale",gyr_cov_scale,1.0);
     nh.param<double>("mapping/acc_cov_scale",acc_cov_scale,1.0);
     nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
@@ -1134,9 +1127,8 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<int>("patch_size", patch_size, 4);
     nh.param<double>("outlier_threshold",outlier_threshold,100);
     nh.param<double>("ncc_thre", ncc_thre, 100);
-
     nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
-
+    nh.param<double>("delta_time", delta_time, 0.0);
 }
 
 int main(int argc, char** argv)
@@ -1145,9 +1137,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
     readParameters(nh);
-    cout<<"debug:"<<debug<<" MIN_IMG_COUNT: "<<MIN_IMG_COUNT<<endl;
     pcl_wait_pub->clear();
-    // pcl_visual_wait_pub->clear();
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
         nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : \
         nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
@@ -1187,9 +1177,6 @@ int main(int argc, char** argv)
     //PointCloudXYZI::Ptr corr_normvect(new PointCloudXYZI(100000, 1));
     int effect_feat_num = 0, frame_num = 0;
     double deltaT, deltaR, aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_solve = 0, aver_time_const_H_time = 0;
-    
-    FOV_DEG = (fov_deg + 10.0) > 179.9 ? 179.9 : (fov_deg + 10.0);
-    HALF_FOV_COS = cos((FOV_DEG) * 0.5 * PI_M / 180.0);
 
     downSizeFilterSurf.setLeafSize(filter_size_surf_min, filter_size_surf_min, filter_size_surf_min);
     downSizeFilterMap.setLeafSize(filter_size_map_min, filter_size_map_min, filter_size_map_min);

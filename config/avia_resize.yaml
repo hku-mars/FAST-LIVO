@@ -5,7 +5,6 @@ dense_map_enable : 1
 filter_size_surf : 0.15
 filter_size_map : 0.3
 cube_side_length : 20
-debug : 0
 grid_size : 40
 patch_size : 8
 img_enable : 1
@@ -15,10 +14,7 @@ ncc_en: false
 ncc_thre: 0
 img_point_cov : 100 # 1000
 laser_point_cov : 0.001 # 0.001
-cam_fx: 431.795259219
-cam_fy: 431.550090267
-cam_cx: 310.833037316
-cam_cy: 266.985989326
+delta_time: 0.0
 
 common:
     lid_topic:  "/livox/lidar"
@@ -32,20 +28,16 @@ preprocess:
 mapping:
     acc_cov_scale: 100
     gyr_cov_scale: 10000
-    fov_degree:    90 # 360
     extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
                    0, 0, 1]
 
 pcd_save:
-    pcd_save_en: true
+    pcd_save_en: false
 
 camera:
-    # img_topic: /usb_cam/image_raw
-    # img_topic:  /camera/image_color
     img_topic: /left_camera/image
-    #xiyuan
     Rcl: [0.00162756,-0.999991,0.00390957,
          -0.0126748,-0.00392989,-0.999912,
           0.999918,0.00157786,-0.012681]

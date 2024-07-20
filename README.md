@@ -111,6 +111,7 @@ Edit `config/xxx.yaml` to set the below parameters:
 - `filter_size_surf`: Downsample the points in a new scan. It is recommended that `0.05~0.15` for indoor scenes, `0.3~0.5` for outdoor scenes.
 - `filter_size_map`: Downsample the points in LiDAR global map. It is recommended that `0.15~0.3` for indoor scenes, `0.4~0.5` for outdoor scenes.
 - `pcd_save_en`: If `true`, save point clouds to the PCD folder. Save RGB-colored points if `img_enable` is `1`, intensity-colored points if `img_enable` is `0`.
+- `delta_time`: The time offset between the camera and LiDAR, which is used to correct timestamp misalignment.
 
 After setting the appropriate topic name and parameters, you can directly run **FAST-LIVO** on the dataset.
 
@@ -123,16 +124,22 @@ roslaunch fast_livo mapping_avia.launch
 rosbag play YOUR_DOWNLOADED.bag
 ```
 
-### 4.3 Run on benchmark dataset (NTU-VIRAL)
+### 4.3 Run on benchmark dataset
 
+NTU-VIRAL
 ```
 roslaunch fast_livo mapping_avia_ntu.launch
+rosbag play YOUR_DOWNLOADED.bag
+```
+MARS-LVIG
+```
+roslaunch fast_livo mapping_avia_marslvig.launch
 rosbag play YOUR_DOWNLOADED.bag
 ```
 
 ## 5. Our hard sychronized equipment
 
-**[Update]** To support the robotics community and enhance the reproducibility of our work, we provide CAD files for our handheld device, available in ".SLDPRT" and ".SLDASM" formats. These files can be opened and edited using Solidworks. Each module is designed for compatibility with FDM (Fused Deposition Modeling) technology, ensuring ease of 3D printing. Additionally, we open-source our **hardware synchronization scheme**, the **STM32 source code**, detailed **hardware wiring configuration instructions**, and **sensor ros driver**. Access these resources at our repository: [**LIV_handhold**](https://github.com/sheng00125/LIV_handhold).
+To support the robotics community and enhance the reproducibility of our work, we provide CAD files for our handheld device, available in ".SLDPRT" and ".SLDASM" formats. These files can be opened and edited using Solidworks. Each module is designed for compatibility with FDM (Fused Deposition Modeling) technology, ensuring ease of 3D printing. Additionally, we open-source our **hardware synchronization scheme**, the **STM32 source code**, detailed **hardware wiring configuration instructions**, and **sensor ros driver**. Access these resources at our repository: [**LIV_handhold**](https://github.com/sheng00125/LIV_handhold).
 
 ![principle](./img/cover.jpg)
 

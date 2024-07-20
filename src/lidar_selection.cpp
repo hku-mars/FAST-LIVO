@@ -1008,9 +1008,9 @@ void LidarSelector::display_keypatch(double time)
         cv::Point2f pf;
         pf = cv::Point2f(pc[0], pc[1]); 
         if (sub_sparse_map->errors[i]<8000) // 5.5
-            cv::circle(img_cp, pf, 4, cv::Scalar(0, 255, 0), -1, 8); // Green Sparse Align tracked
+            cv::circle(img_cp, pf, 6, cv::Scalar(0, 255, 0), -1, 8); // Green Sparse Align tracked
         else
-            cv::circle(img_cp, pf, 4, cv::Scalar(255, 0, 0), -1, 8); // Blue Sparse Align tracked
+            cv::circle(img_cp, pf, 6, cv::Scalar(255, 0, 0), -1, 8); // Blue Sparse Align tracked
     }   
     std::string text = std::to_string(int(1/time))+" HZ";
     cv::Point2f origin;

@@ -96,8 +96,6 @@ catkin_package(
   INCLUDE_DIRS include
 )
 
-# add_executable(loam_feat_extract src/feature_extract.cpp)
-# target_link_libraries(loam_feat_extract ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_library(ikdtree include/ikd-Tree/ikd_Tree.cpp
                     # include/ikd-Forest/ikd_Forest.cpp 
                     include/FOV_Checker/FOV_Checker.cpp
@@ -113,13 +111,5 @@ add_executable(fastlivo_mapping src/laserMapping.cpp
                                 )
 target_link_libraries(fastlivo_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} vio ikdtree)
 target_include_directories(fastlivo_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
-
-# add_executable(kd_tree_test include/ikd-Tree/ikd_Tree.cpp src/kd_tree_test.cpp)
-# target_link_libraries(kd_tree_test ${PCL_LIBRARIES})
-
-# add_executable(ikd_Forest_Test include/ikd-Forest/ikd_Forest.cpp test/ikd_Forest_Test.cpp)
-# target_link_libraries(ikd_Forest_Test ${PCL_LIBRARIES})
-
-# add_executable(fov_test src/fov_test.cpp include/FOV_Checker/FOV_Checker.cpp)
 
 
