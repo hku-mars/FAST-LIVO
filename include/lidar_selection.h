@@ -47,8 +47,8 @@ class LidarSelector {
     deque< PointPtr > map_cur_frame_;
     deque< PointPtr > sub_map_cur_frame_;
     double computeH, ekf_time;
-    double ave_total = 0.01;
-    int frame_cont = 1;
+    double ave_total = 0.0;
+    int frame_count = 0;
     vk::robust_cost::ScaleEstimatorPtr scale_estimator_;
 
     Matrix<double, DIM_STATE, DIM_STATE> G, H_T_H;

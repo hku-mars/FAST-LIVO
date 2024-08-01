@@ -370,10 +370,8 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
     unordered_map<VOXEL_KEY, float>().swap(sub_feat_map);
     unordered_map<int, Warp*>().swap(Warp_map);
 
-    // cv::Mat depth_img = cv::Mat::zeros(height, width, CV_32FC1);
-    // float* it = (float*)depth_img.data;
-
-    float it[height*width] = {0.0};
+    cv::Mat depth_img = cv::Mat::zeros(height, width, CV_32FC1);
+    float* it = (float*)depth_img.data;
 
     double t_insert, t_depth, t_position;
     t_insert=t_depth=t_position=0;
@@ -1080,11 +1078,11 @@ void LidarSelector::detect(cv::Mat img, PointCloudXYZI::Ptr pg)
     
     double t2 = omp_get_wtime();
     
-    frame_cont ++;
-    ave_total = ave_total * (frame_cont - 1) / frame_cont + (t2 - t1) / frame_cont;
+    frame_count ++;
+    ave_total = ave_total * (frame_count - 1) / frame_count + (t2 - t1) / frame_count;
 
-    printf("[ VIO ]: time: addFromSparseMap: %0.6f addSparseMap: %0.6f ComputeJ: %0.6f addObservation: %0.6f total time: %0.6f ave_total: %0.6f.\n"
-    , t3-t1, t4-t3, t5-t4, t2-t5, t2-t1);
+    printf("[ VIO ]: time: addFromSparseMap: %.6f addSparseMap: %.6f ComputeJ: %.6f addObservation: %.6f total time: %.6f ave_total: %.6f.\n"
+    , t3-t1, t4-t3, t5-t4, t2-t5, t2-t1, ave_total);
 
     display_keypatch(t2-t1);
 } 
