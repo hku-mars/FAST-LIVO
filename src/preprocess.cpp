@@ -170,7 +170,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
   pl_full.clear();
   pcl::PointCloud<ouster_ros::Point> pl_orig;
   pcl::fromROSMsg(*msg, pl_orig);
-  uint plsize = pl_orig.size();
+  int plsize = pl_orig.size();
   pl_corn.reserve(plsize);
   pl_surf.reserve(plsize);
   if (feature_enabled)
@@ -184,7 +184,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     for (uint i = 0; i < plsize; i++)
     {
       double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
-      if (range < blind) continue;
+      if (range < (blind * blind)) continue;
       Eigen::Vector3d pt_vec;
       PointType added_pt;
       added_pt.x = pl_orig.points[i].x;
@@ -200,7 +200,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       if (yaw_angle <= -180.0)
         yaw_angle += 360.0;
 
-      added_pt.curvature = pl_orig.points[i].t / 1e6;
+      added_pt.curvature = pl_orig.points[i].t * 1.e-6f;
       if(pl_orig.points[i].ring < N_SCANS)
       {
         pl_buff[pl_orig.points[i].ring].push_back(added_pt);
@@ -210,7 +210,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     for (int j = 0; j < N_SCANS; j++)
     {
       PointCloudXYZI &pl = pl_buff[j];
-      uint linesize = pl.size();
+      int linesize = pl.size();
       vector<orgtype> &types = typess[j];
       types.clear();
       types.resize(linesize);
@@ -238,7 +238,7 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 
       double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
       
-      if (range < blind) continue;
+      if (range < (blind * blind)) continue;
       
       Eigen::Vector3d pt_vec;
       PointType added_pt;
@@ -249,19 +249,14 @@ void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       added_pt.normal_x = 0;
       added_pt.normal_y = 0;
       added_pt.normal_z = 0;
+      added_pt.curvature = pl_orig.points[i].t * 1.e-6f; // curvature unit: ms
 
-
-      added_pt.curvature = pl_orig.points[i].t / 1e6;
-
-      // cout<<"added_pt.curvature: "<<added_pt.curvature<<endl;
       pl_surf.points.push_back(added_pt);
     }
   }
   // pub_func(pl_surf, pub_full, msg->header.stamp);
   // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
-
-#define MAX_LINE_NUM 64
 
 void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
@@ -271,34 +266,37 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 
     pcl::PointCloud<velodyne_ros::Point> pl_orig;
     pcl::fromROSMsg(*msg, pl_orig);
-    uint plsize = pl_orig.points.size();
+    int plsize = pl_orig.points.size();
+    if (plsize == 0) return;
     pl_surf.reserve(plsize);
 
-    bool is_first[MAX_LINE_NUM];
-    bool is_jump[MAX_LINE_NUM]={false};       // if jump point
-    double yaw_fp[MAX_LINE_NUM]={0};     // yaw of first scan point
-    int layer;                 // layer number
-    double omega_l=3.61;       // scan angular velocity
-    float yaw_last[MAX_LINE_NUM]={0.0};  // yaw of last scan point
-    float time_last[MAX_LINE_NUM]={0.0}; // last offset time
-    float time_jump[MAX_LINE_NUM]={0.0}; // offset time before jump
-    memset(is_first, true, sizeof(is_first));
+    /*** These variables only works when no point timestamps given ***/
+    double omega_l = 0.361 * 10;       // scan angular velocity 10Hz
+    std::vector<bool> is_first(N_SCANS,true);
+    std::vector<double> yaw_fp(N_SCANS, 0.0);      // yaw of first scan point
+    std::vector<float> yaw_last(N_SCANS, 0.0);   // yaw of last scan point
+    std::vector<float> time_last(N_SCANS, 0.0);  // last offset time
+    /*****************************************************************/
 
-    double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;
-    double yaw_end  = yaw_first;
-    int layer_first = pl_orig.points[0].ring;
-    for (uint i = plsize - 1; i > 0; i--)
+    if (pl_orig.points[plsize - 1].time > 0)
     {
-      if (pl_orig.points[i].ring == layer_first)
+      given_offset_time = true;
+    }
+    else
+    {
+      given_offset_time = false;
+      double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;
+      double yaw_end  = yaw_first;
+      int layer_first = pl_orig.points[0].ring;
+      for (uint i = plsize - 1; i > 0; i--)
       {
-        yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
-        break;
+        if (pl_orig.points[i].ring == layer_first)
+        {
+          yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
+          break;
+        }
       }
     }
-    double yaw_cali = yaw_first - yaw_end;
-    yaw_cali = yaw_cali > 300.0 ? (yaw_cali - 360.0) : yaw_cali < -300.0 ? (yaw_cali += 360.0) : yaw_cali;
-    if(yaw_cali < 15.0) omega_l *= 1.0 + yaw_cali / 360.0;
-    // printf("yaw_cali: %lf \n", yaw_cali);
 
     if(feature_enabled)
     {
@@ -314,41 +312,42 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         added_pt.normal_x = 0;
         added_pt.normal_y = 0;
         added_pt.normal_z = 0;
-        layer=pl_orig.points[i].ring;
+        int layer  = pl_orig.points[i].ring;
         if (layer >= N_SCANS) continue;
         added_pt.x = pl_orig.points[i].x;
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        
-        double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+        added_pt.curvature = pl_orig.points[i].time * 1.e-3f; // units: ms
 
-        if (is_first[layer])
+        if (!given_offset_time)
         {
-          // printf("layer: %d; is first: %d", layer, is_first[layer]);
-            yaw_fp[layer]=yaw_angle;
-            is_first[layer]=false;
-            added_pt.curvature = 0.0;
-            yaw_last[layer]=yaw_angle;
-            time_last[layer]=added_pt.curvature;
-            continue;
-        }
+          double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+          if (is_first[layer])
+          {
+            // printf("layer: %d; is first: %d", layer, is_first[layer]);
+              yaw_fp[layer]=yaw_angle;
+              is_first[layer]=false;
+              added_pt.curvature = 0.0;
+              yaw_last[layer]=yaw_angle;
+              time_last[layer]=added_pt.curvature;
+              continue;
+          }
 
-        int prints = 0;
-        // compute offset time
-        if (yaw_angle <= yaw_fp[layer])
-        {
-          added_pt.curvature = (yaw_fp[layer]-yaw_angle) / omega_l;
-        }
-        else
-        {
-          added_pt.curvature = (yaw_fp[layer]-yaw_angle+360.0) / omega_l;
-        }
+          if (yaw_angle <= yaw_fp[layer])
+          {
+            added_pt.curvature = (yaw_fp[layer]-yaw_angle) / omega_l;
+          }
+          else
+          {
+            added_pt.curvature = (yaw_fp[layer]-yaw_angle+360.0) / omega_l;
+          }
 
-        if (added_pt.curvature < time_last[layer])  added_pt.curvature+=360.0/omega_l;
+          if (added_pt.curvature < time_last[layer])  added_pt.curvature+=360.0/omega_l;
 
-        yaw_last[layer] = yaw_angle;
-        time_last[layer]=added_pt.curvature;
+          yaw_last[layer] = yaw_angle;
+          time_last[layer]=added_pt.curvature;
+        }
 
         pl_buff[layer].points.push_back(added_pt);
       }
@@ -356,7 +355,8 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       for (int j = 0; j < N_SCANS; j++)
       {
         PointCloudXYZI &pl = pl_buff[j];
-        uint linesize = pl.size();
+        int linesize = pl.size();
+        if (linesize < 2) continue;
         vector<orgtype> &types = typess[j];
         types.clear();
         types.resize(linesize);
@@ -378,102 +378,73 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
       for (int i = 0; i < plsize; i++)
       {
         PointType added_pt;
+        
         added_pt.normal_x = 0;
         added_pt.normal_y = 0;
         added_pt.normal_z = 0;
-        layer=pl_orig.points[i].ring;
         added_pt.x = pl_orig.points[i].x;
         added_pt.y = pl_orig.points[i].y;
         added_pt.z = pl_orig.points[i].z;
         added_pt.intensity = pl_orig.points[i].intensity;
-        
-        double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+        added_pt.curvature = pl_orig.points[i].time * 1.e-3f;  // curvature unit: ms // 
 
-        if (is_first[layer])
+        if (!given_offset_time)
         {
-          // printf("layer: %d; is first: %d", layer, is_first[layer]);
-            yaw_fp[layer]=yaw_angle;
-            is_first[layer]=false;
-            added_pt.curvature = 0.0;
-            yaw_last[layer]=yaw_angle;
-            time_last[layer]=added_pt.curvature;
-            continue;
+          int layer = pl_orig.points[i].ring;
+          double yaw_angle = atan2(added_pt.y, added_pt.x) * 57.2957;
+
+          if (is_first[layer])
+          {
+            // printf("layer: %d; is first: %d", layer, is_first[layer]);
+              yaw_fp[layer]=yaw_angle;
+              is_first[layer]=false;
+              added_pt.curvature = 0.0;
+              yaw_last[layer]=yaw_angle;
+              time_last[layer]=added_pt.curvature;
+              continue;
+          }
+
+          // compute offset time
+          if (yaw_angle <= yaw_fp[layer])
+          {
+            added_pt.curvature = (yaw_fp[layer]-yaw_angle) / omega_l;
+          }
+          else
+          {
+            added_pt.curvature = (yaw_fp[layer]-yaw_angle+360.0) / omega_l;
+          }
+
+          if (added_pt.curvature < time_last[layer])  added_pt.curvature+=360.0/omega_l;
+
+          yaw_last[layer] = yaw_angle;
+          time_last[layer]=added_pt.curvature;
         }
 
-        int prints = 0;
-        // compute offset time
-        if (yaw_angle <= yaw_fp[layer])
-        {
-          added_pt.curvature = (yaw_fp[layer]-yaw_angle) / omega_l;
-        }
-        else
-        {
-          added_pt.curvature = (yaw_fp[layer]-yaw_angle+360.0) / omega_l;
-        }
-
-        if (added_pt.curvature < time_last[layer])  added_pt.curvature+=360.0/omega_l;
-
-        yaw_last[layer] = yaw_angle;
-        time_last[layer]=added_pt.curvature;
-
-        // if(i==(plsize-1))  printf("index: %d layer: %d, yaw: %lf, offset-time: %lf, condition: %d\n", i, layer, yaw_angle, added_pt.curvature, prints);
         if (i % point_filter_num == 0)
         {
-          if(added_pt.x*added_pt.x+added_pt.y*added_pt.y+added_pt.z*added_pt.z > blind)
+          if(added_pt.x*added_pt.x+added_pt.y*added_pt.y+added_pt.z*added_pt.z > (blind * blind))
           {
             pl_surf.points.push_back(added_pt);
           }
         }
       }
     }
-
-    
-    // pub_func(pl_surf, pub_full, msg->header.stamp);
-    // pub_func(pl_surf, pub_surf, msg->header.stamp);
-    // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
 
 void Preprocess::xt32_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
   pl_surf.clear();
-  pl_corn.clear();
-  pl_full.clear();
 
   pcl::PointCloud<xt32_ros::Point> pl_orig;
   pcl::fromROSMsg(*msg, pl_orig);
   int plsize = pl_orig.points.size();
   pl_surf.reserve(plsize);
 
-  bool is_first[MAX_LINE_NUM];
-  double yaw_fp[MAX_LINE_NUM] = {0};     // yaw of first scan point
-  double omega_l = 3.61;                 // scan angular velocity
-  float yaw_last[MAX_LINE_NUM] = {0.0};  // yaw of last scan point
-  float time_last[MAX_LINE_NUM] = {0.0}; // last offset time
-
-  if (pl_orig.points[plsize - 1].timestamp > 0) { given_offset_time = true; }
-  else
-  {
-    given_offset_time = false;
-    memset(is_first, true, sizeof(is_first));
-    double yaw_first = atan2(pl_orig.points[0].y, pl_orig.points[0].x) * 57.29578;
-    double yaw_end = yaw_first;
-    int layer_first = pl_orig.points[0].ring;
-    for (uint i = plsize - 1; i > 0; i--)
-    {
-      if (pl_orig.points[i].ring == layer_first)
-      {
-        yaw_end = atan2(pl_orig.points[i].y, pl_orig.points[i].x) * 57.29578;
-        break;
-      }
-    }
-  }
-
   double time_head = pl_orig.points[0].timestamp;
 
   for (int i = 0; i < plsize; i++)
   {
     PointType added_pt;
-    // cout<<"!!!!!!"<<i<<" "<<plsize<<endl;
 
     added_pt.normal_x = 0;
     added_pt.normal_y = 0;
@@ -484,30 +455,15 @@ void Preprocess::xt32_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     added_pt.intensity = pl_orig.points[i].intensity;
     added_pt.curvature = (pl_orig.points[i].timestamp - time_head) * 1000.f;
 
-    // printf("added_pt.curvature: %lf %lf \n", added_pt.curvature,
-    // pl_orig.points[i].timestamp);
-
-    // if(i==(plsize-1))  printf("index: %d layer: %d, yaw: %lf, offset-time:
-    // %lf, condition: %d\n", i, layer, yaw_angle, added_pt.curvature,
-    // prints);
     if (i % point_filter_num == 0)
     {
       if (added_pt.x * added_pt.x + added_pt.y * added_pt.y + added_pt.z * added_pt.z > blind)
       {
         pl_surf.points.push_back(added_pt);
-        // printf("time mode: %d time: %d \n", given_offset_time,
-        // pl_orig.points[i].t);
       }
     }
   }
-  
-  // pub_func(pl_surf, pub_full, msg->header.stamp);
-  // pub_func(pl_surf, pub_surf, msg->header.stamp);
-  // pub_func(pl_surf, pub_corn, msg->header.stamp);
 }
-
-
-
 
 void Preprocess::give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types)
 {

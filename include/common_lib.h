@@ -72,7 +72,6 @@ extern M3D Eye3d;
 extern M3F Eye3f;
 extern V3D Zero3d;
 extern V3F Zero3f;
-extern Vector3d Lidar_offset_to_IMU;
 
 namespace lidar_selection
 {

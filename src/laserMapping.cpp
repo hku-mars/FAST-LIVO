@@ -101,8 +101,8 @@ M3D Eye3d(M3D::Identity());
 M3F Eye3f(M3F::Identity());
 V3D Zero3d(0, 0, 0);
 V3F Zero3f(0, 0, 0);
-// Vector3d Lidar_offset_to_IMU(0.04165, 0.02326, -0.0284); // Avia
-Vector3d Lidar_offset_to_IMU;
+Vector3d Lidar_offset_to_IMU(Zero3d);
+M3D Lidar_rot_to_IMU(Eye3d);
 int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0,\
     effct_feat_num = 0, time_log_counter = 0, publish_count = 0;
 int MIN_IMG_COUNT = 0;
@@ -274,7 +274,7 @@ void pointBodyToWorld(PointType const * const pi, PointType * const po)
     //state_ikfom transfer_state = kf.get_x();
     V3D p_global(state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + state_point.pos);
     #else
-    V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
+    V3D p_global(state.rot_end * (Lidar_rot_to_IMU*p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
 
     po->x = p_global(0);
@@ -291,7 +291,7 @@ void pointBodyToWorld(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
     //state_ikfom transfer_state = kf.get_x();
     V3D p_global(state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + state_point.pos);
     #else
-    V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
+    V3D p_global(state.rot_end * (Lidar_rot_to_IMU*p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
     po[0] = p_global(0);
     po[1] = p_global(1);
@@ -305,7 +305,7 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po)
     //state_ikfom transfer_state = kf.get_x();
     V3D p_global(state_point.rot * (state_point.offset_R_L_I*p_body + state_point.offset_T_L_I) + state_point.pos);
     #else
-    V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
+    V3D p_global(state.rot_end * (Lidar_rot_to_IMU*p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
     po->x = p_global(0);
     po->y = p_global(1);
@@ -1188,13 +1188,8 @@ int main(int argc, char** argv)
     #endif
 
     shared_ptr<ImuProcess> p_imu(new ImuProcess());
-    // p_imu->set_extrinsic(V3D(0.04165, 0.02326, -0.0284));   //avia
-    // p_imu->set_extrinsic(V3D(0.05512, 0.02226, -0.0297));   //horizon
-    V3D extT;
-    M3D extR;
-    extT<<VEC_FROM_ARRAY(extrinT);
-    extR<<MAT_FROM_ARRAY(extrinR);
-    Lidar_offset_to_IMU = extT;
+    Lidar_offset_to_IMU<<VEC_FROM_ARRAY(extrinT);
+    Lidar_rot_to_IMU<<MAT_FROM_ARRAY(extrinR);
     lidar_selection::LidarSelectorPtr lidar_selector(new lidar_selection::LidarSelector(grid_size, new SparseMap));
     if(!vk::camera_loader::loadFromRosNs("laserMapping", lidar_selector->cam))
         throw std::runtime_error("Camera model not correctly specified.");
@@ -1204,7 +1199,7 @@ int main(int argc, char** argv)
     lidar_selector->outlier_threshold = outlier_threshold;
     lidar_selector->ncc_thre = ncc_thre;
     lidar_selector->sparse_map->set_camera2lidar(cameraextrinR, cameraextrinT);
-    lidar_selector->set_extrinsic(extT, extR);
+    lidar_selector->set_extrinsic(Lidar_offset_to_IMU, Lidar_rot_to_IMU);
     lidar_selector->state = &state;
     lidar_selector->state_propagat = &state_propagat;
     lidar_selector->NUM_MAX_ITERATIONS = NUM_MAX_ITERATIONS;
@@ -1217,7 +1212,7 @@ int main(int argc, char** argv)
     lidar_selector->ncc_en = ncc_en;
     lidar_selector->init();
     
-    p_imu->set_extrinsic(extT, extR);
+    p_imu->set_extrinsic(Lidar_offset_to_IMU, Lidar_rot_to_IMU);
     p_imu->set_gyr_cov_scale(V3D(gyr_cov_scale, gyr_cov_scale, gyr_cov_scale));
     p_imu->set_acc_cov_scale(V3D(acc_cov_scale, acc_cov_scale, acc_cov_scale));
     p_imu->set_gyr_bias_cov(V3D(0.00001, 0.00001, 0.00001));
@@ -1611,7 +1606,7 @@ int main(int argc, char** argv)
                 {
                     const PointType &laser_p  = laserCloudOri->points[i];
                     V3D point_this(laser_p.x, laser_p.y, laser_p.z);
-                    point_this += Lidar_offset_to_IMU;
+                    point_this = Lidar_rot_to_IMU*point_this + Lidar_offset_to_IMU;
                     M3D point_crossmat;
                     point_crossmat<<SKEW_SYM_MATRX(point_this);
 

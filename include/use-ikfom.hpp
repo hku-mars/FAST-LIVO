@@ -42,8 +42,6 @@ MTK::get_cov<process_noise_ikfom>::type process_noise_cov()
 	return cov;
 }
 
-//double L_offset_to_I[3] = {0.04165, 0.02326, -0.0284}; // Avia 
-//vect3 Lidar_offset_to_IMU(L_offset_to_I, 3);
 Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in)
 {
 	Eigen::Matrix<double, 24, 1> res = Eigen::Matrix<double, 24, 1>::Zero();

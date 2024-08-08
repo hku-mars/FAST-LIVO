@@ -28,7 +28,7 @@ preprocess:
 mapping:
     acc_cov_scale: 100
     gyr_cov_scale: 10000
-    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]
+    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ] # horizon 0.05512, 0.02226, -0.0297
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
                    0, 0, 1]

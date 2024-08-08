@@ -56,18 +56,6 @@ void ImuProcess::push_update_state(double offs_t, StatesGroup state)
   IMUpose.push_back(set_pose6d(offs_t, acc_tmp, angvel_tmp, vel_imu, pos_imu, R_imu));
 }
 
-void ImuProcess::set_extrinsic(const MD(4,4) &T)
-{
-  Lid_offset_to_IMU = T.block<3,1>(0,3);
-  Lid_rot_to_IMU    = T.block<3,3>(0,0);
-}
-
-void ImuProcess::set_extrinsic(const V3D &transl)
-{
-  Lid_offset_to_IMU = transl;
-  Lid_rot_to_IMU.setIdentity();
-}
-
 void ImuProcess::set_extrinsic(const V3D &transl, const M3D &rot)
 {
   Lid_offset_to_IMU = transl;
@@ -769,8 +757,8 @@ void ImuProcess::UndistortPcl(LidarMeasureGroup &lidar_meas, StatesGroup &state_
   last_imu_ = v_imu.back();
   last_lidar_end_time_ = pcl_end_time;
 
-  auto pos_liD_e = state_inout.pos_end + state_inout.rot_end * Lid_offset_to_IMU;
-  // auto R_liD_e   = state_inout.rot_end * Lidar_R_to_IMU;
+  M3D extR_Ri(Lid_rot_to_IMU.transpose() * state_inout.rot_end.transpose());
+  V3D exrR_extT(Lid_rot_to_IMU.transpose() * Lid_offset_to_IMU);
   
   // cout<<"[ IMU Process ]: vel "<<state_inout.vel_end.transpose()<<" pos "<<state_inout.pos_end.transpose()<<" ba"<<state_inout.bias_a.transpose()<<" bg "<<state_inout.bias_g.transpose()<<endl;
   // cout<<"propagated cov: "<<state_inout.cov.diagonal().transpose()<<endl;
@@ -782,7 +770,7 @@ void ImuProcess::UndistortPcl(LidarMeasureGroup &lidar_meas, StatesGroup &state_
   //   cout<<endl<<"UndistortPcl size:"<<IMUpose.size()<<endl;
   //   cout<<"Undistorted pcl_out.size: "<<pcl_out.size()
   //          <<"lidar_meas.size: "<<lidar_meas.lidar->points.size()<<endl;
-    if (pcl_out.points.size()<1) return;
+  if (pcl_out.points.size() < 1) return;
   /*** undistort each lidar point (backward propagation) ***/
   auto it_pcl = pcl_out.points.end() - 1;
   for (auto it_kp = IMUpose.end() - 1; it_kp != IMUpose.begin(); it_kp--)
@@ -805,10 +793,10 @@ void ImuProcess::UndistortPcl(LidarMeasureGroup &lidar_meas, StatesGroup &state_
        * So if we want to compensate a point at timestamp-i to the frame-e
        * P_compensate = R_imu_e ^ T * (R_i * P_i + T_ei) where T_ei is represented in global frame */
       M3D R_i(R_imu * Exp(angvel_avr, dt));
-      V3D T_ei(pos_imu + vel_imu * dt + 0.5 * acc_imu * dt * dt + R_i * Lid_offset_to_IMU - pos_liD_e);
+      V3D T_ei(pos_imu + vel_imu * dt + 0.5 * acc_imu * dt * dt - state_inout.pos_end);
 
       V3D P_i(it_pcl->x, it_pcl->y, it_pcl->z);
-      V3D P_compensate = state_inout.rot_end.transpose() * (R_i * P_i + T_ei);
+      V3D P_compensate = (extR_Ri * (R_i * (Lid_rot_to_IMU * P_i + Lid_offset_to_IMU) + T_ei) - exrR_extT);
 
       /// save Undistorted points and their rotation
       it_pcl->x = P_compensate(0);
