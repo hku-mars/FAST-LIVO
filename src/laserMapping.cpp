@@ -730,6 +730,8 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
             pointRGB.y =  pcl_wait_pub->points[i].y;
             pointRGB.z =  pcl_wait_pub->points[i].z;
             V3D p_w(pcl_wait_pub->points[i].x, pcl_wait_pub->points[i].y, pcl_wait_pub->points[i].z);
+            V3D pf(lidar_selector->new_frame_->w2f(p_w));
+            if (pf[2] < 0) continue;
             V2D pc(lidar_selector->new_frame_->w2c(p_w));
             if (lidar_selector->new_frame_->cam_->isInFrame(pc.cast<int>(),0))
             {
