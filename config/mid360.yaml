@@ -1,6 +1,6 @@
 feature_extract_enable : 0
 point_filter_num : 2
-max_iteration : 10
+max_iteration : 5
 dense_map_enable : 1
 filter_size_surf : 0.15
 filter_size_map : 0.3
@@ -21,14 +21,14 @@ common:
     imu_topic:  "/livox/imu"
 
 preprocess:
-    lidar_type: 1 # 1:Livox Avia LiDAR  2:VELO16  3:OUST64  4:XT32 
-    scan_line: 6 # 16  64  32
-    blind: 5 # blind x m disable
+    lidar_type: 1 # 1:Livox LiDAR  2:VELO16  3:OUST64  4:XT32  5:Mid360
+    scan_line: 4 # 16  64  32
+    blind: 0.5 # blind x m disable
 
 mapping:
     acc_cov_scale: 100
     gyr_cov_scale: 10000
-    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ] # horizon 0.05512, 0.02226, -0.0297
+    extrinsic_T: [ -0.011, -0.02329, 0.04412 ] # horizon 0.05512, 0.02226, -0.0297 # mid360 -0.011, -0.02329, 0.04412 # avia 0.04165, 0.02326, -0.0284 
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
                    0, 0, 1]
@@ -38,8 +38,8 @@ pcd_save:
 
 camera:
     img_topic: /left_camera/image
-    Rcl: [0.00162756,-0.999991,0.00390957,
-         -0.0126748,-0.00392989,-0.999912,
-          0.999918,0.00157786,-0.012681]
-    Pcl: [0.0409257, 0.0318424, -0.0927219]
+    Rcl: [0.0268125, -0.999465, 0.0187293, 
+         -0.157156, -0.0227175, -0.987312,  
+          0.98721, 0.0235289,  -0.157681]  
+    Pcl: [-0.112954, 0.0328782, -0.308706]
     

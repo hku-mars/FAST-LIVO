@@ -7,7 +7,7 @@
 
 	<!-- <node pkg="rosbag" type="play" name="rosbag" args="-r 1.0 -s 0.0 $(arg bag_name)"/> -->
 
-	<rosparam command="load" file="$(find fast_livo)/config/avia.yaml" />
+	<rosparam command="load" file="$(find fast_livo)/config/mid360.yaml" />
 
 	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
 		<rosparam file="$(find fast_livo)/config/camera_pinhole.yaml" />

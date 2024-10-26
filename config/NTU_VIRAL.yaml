@@ -21,7 +21,7 @@ common:
     imu_topic:  "/os1_cloud_node1/imu"
 
 preprocess:
-    lidar_type: 3  # Ouster
+    lidar_type: 3 # Ouster
     scan_line: 16
     blind: 4 # blind x m disable
 

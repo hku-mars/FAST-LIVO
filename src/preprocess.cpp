@@ -77,7 +77,6 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
   pl_full.clear();
   double t1 = omp_get_wtime();
   uint plsize = msg->point_num;
-  uint effect_ind = 0;
 
   pl_corn.reserve(plsize);
   pl_surf.reserve(plsize);
@@ -88,6 +87,7 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
     pl_buff[i].clear();
     pl_buff[i].reserve(plsize);
   }
+  uint valid_num = 0;
 
   if (feature_enabled)
   {
@@ -137,30 +137,28 @@ void Preprocess::avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg)
   {
     for(uint i=1; i<plsize; i++)
     {
-        if((abs(msg->points[i].x - msg->points[i-1].x) < 1e-8) 
-            || (abs(msg->points[i].y - msg->points[i-1].y) < 1e-8)
-            || (abs(msg->points[i].z - msg->points[i-1].z) < 1e-8)
-            || (msg->points[i].x * msg->points[i].x + msg->points[i].y * msg->points[i].y < blind)
-            || (msg->points[i].line > N_SCANS)
-            || ((msg->points[i].tag & 0x30) != RETURN0AND1))
+      if((msg->points[i].line < N_SCANS) && ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00))
+      {
+        valid_num ++;
+        if (valid_num % point_filter_num == 0)
         {
-            continue;
-        }
+          pl_full[i].x = msg->points[i].x;
+          pl_full[i].y = msg->points[i].y;
+          pl_full[i].z = msg->points[i].z;
+          pl_full[i].intensity = msg->points[i].reflectivity;
+          pl_full[i].curvature = msg->points[i].offset_time / float(1000000); // use curvature as time of each laser points, curvature unit: ms
 
-        effect_ind ++;
-
-        if(effect_ind % point_filter_num == 0)
-        {
-            pl_full[i].x = msg->points[i].x;
-            pl_full[i].y = msg->points[i].y;
-            pl_full[i].z = msg->points[i].z;
-            pl_full[i].intensity = msg->points[i].reflectivity;
-            pl_full[i].curvature = msg->points[i].offset_time / float(1000000); //use curvature as time of each laser points
+          if(((abs(pl_full[i].x - pl_full[i-1].x) > 1e-7) 
+              || (abs(pl_full[i].y - pl_full[i-1].y) > 1e-7)
+              || (abs(pl_full[i].z - pl_full[i-1].z) > 1e-7))
+              && (pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z > (blind * blind)))
+          {
             pl_surf.push_back(pl_full[i]);
+          }
         }
+      }
     }
   }
-  // printf("feature extraction time: %lf \n", omp_get_wtime()-t1);
 }
 
 void Preprocess::oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
