@@ -23,7 +23,7 @@ common:
 preprocess:
     lidar_type: 1 # 1:Livox LiDAR  2:VELO16  3:OUST64  4:XT32  5:Mid360
     scan_line: 6 # 16  64  32
-    blind: 5 # blind x m disable
+    blind: 4 # blind x m disable
 
 mapping:
     acc_cov_scale: 100

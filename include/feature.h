@@ -46,21 +46,19 @@ struct Feature
   float error;
   // Vector2d grad_cur_;   //!< edgelete grad direction in cur frame 
   SE3 T_f_w_;
-  float* patch;
-  Feature(float* _patch, const Vector2d& _px, const Vector3d& _f, const SE3& _T_f_w, const float &_score, int _level) :
+  // float* patch;
+  Feature(const Vector2d& _px, const Vector3d& _f, const SE3& _T_f_w, const float &_score, int _level) :
     type(CORNER),
     px(_px),
     f(_f),
     T_f_w_(_T_f_w),
     level(_level),
-    patch(_patch),
     score(_score)
   {}
   inline Vector3d pos() const { return T_f_w_.inverse().translation(); }
   ~Feature()
   {
     // printf("The feature %d has been destructed.", id_);
-    delete[] patch;
   }
 };
 

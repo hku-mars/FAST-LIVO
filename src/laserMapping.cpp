@@ -1841,35 +1841,5 @@ int main(int argc, char** argv)
     fout_out.close();
     fout_pre.close();
 
-    #ifndef DEPLOY
-    vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
-    FILE *fp2;
-    string log_dir = root_dir + "/Log/fast_livo_time_log.csv";
-    fp2 = fopen(log_dir.c_str(),"w");
-    fprintf(fp2,"time_stamp, average time, incremental time, search time,fov check time, total time, alpha_bal, alpha_del\n");
-    for (int i = 0;i<time_log_counter; i++){
-        fprintf(fp2,"%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%f,%f\n",T1[i],s_plot[i],s_plot2[i],s_plot3[i],s_plot4[i],s_plot5[i],s_plot6[i],s_plot7[i]);
-        t.push_back(T1[i]);
-        s_vec.push_back(s_plot[i]);
-        s_vec2.push_back(s_plot2[i]);
-        s_vec3.push_back(s_plot3[i]);
-        s_vec4.push_back(s_plot4[i]);
-        s_vec5.push_back(s_plot5[i]);
-        s_vec6.push_back(s_plot6[i]);        
-        s_vec7.push_back(s_plot7[i]);                             
-    }
-    fclose(fp2);
-    if (!t.empty())
-    {
-        // plt::named_plot("incremental time",t,s_vec2);
-        // plt::named_plot("search_time",t,s_vec3);
-        // plt::named_plot("total time",t,s_vec5);
-        // plt::named_plot("average time",t,s_vec);
-        // plt::legend();
-        // plt::show();
-        // plt::pause(0.5);
-        // plt::close();
-    }
-    #endif
     return 0;
 }

@@ -27,8 +27,6 @@ LidarSelector::~LidarSelector()
     delete[] grid_num;
     delete[] map_index;
     delete[] map_value;
-    delete[] align_flag;
-    delete[] patch_cache;
     unordered_map<int, Warp*>().swap(Warp_map);
     unordered_map<VOXEL_KEY, float>().swap(sub_feat_map);
     unordered_map<VOXEL_KEY, VOXEL_POINTS*>().swap(feat_map);  
@@ -62,21 +60,17 @@ void LidarSelector::init()
     grid_num = new int[length];
     map_index = new int[length];
     map_value = new float[length];
-    align_flag = new int[length];
     map_dist = (float*)malloc(sizeof(float)*length);
     memset(grid_num, TYPE_UNKNOWN, sizeof(int)*length);
     memset(map_index, 0, sizeof(int)*length);
     memset(map_value, 0, sizeof(float)*length);
     voxel_points_.reserve(length);
     add_voxel_points_.reserve(length);
-    count_img = 0;
     patch_size_total = patch_size * patch_size;
     patch_size_half = static_cast<int>(patch_size/2);
-    patch_cache = new float[patch_size_total];
+    patch_cache.resize(patch_size_total);
     stage_ = STAGE_FIRST_FRAME;
     pg_down.reset(new PointCloudXYZI());
-    Map_points.reset(new PointCloudXYZI());
-    Map_points_output.reset(new PointCloudXYZI());
     weight_scale_ = 10;
     weight_function_.reset(new vk::robust_cost::HuberWeightFunction());
     // weight_function_.reset(new vk::robust_cost::TukeyWeightFunction());
@@ -182,13 +176,10 @@ void LidarSelector::addSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
         {
             V3D pt = add_voxel_points_[i];
             V2D pc(new_frame_->w2c(pt));
-            float* patch = new float[patch_size_total*3];
-            getpatch(img, pc, patch, 0);
-            getpatch(img, pc, patch, 1);
-            getpatch(img, pc, patch, 2);
+
             PointPtr pt_new(new Point(pt));
             Vector3d f = cam->cam2world(pc);
-            FeaturePtr ftr_new(new Feature(patch, pc, f, new_frame_->T_f_w_, map_value[i], 0));
+            FeaturePtr ftr_new(new Feature(pc, f, new_frame_->T_f_w_, map_value[i], 0));
             ftr_new->img = new_frame_->img_pyr_[0];
             // ftr_new->ImgPyr.resize(5);
             // for(int i=0;i<5;i++) ftr_new->ImgPyr[i] = new_frame_->img_pyr_[i];
@@ -339,6 +330,7 @@ int LidarSelector::getBestSearchLevel(
   return search_level;
 }
 
+#ifdef FeatureAlign
 void LidarSelector::createPatchFromPatchWithBorder(float* patch_with_border, float* patch_ref)
 {
   float* ref_patch_ptr = patch_ref;
@@ -349,6 +341,7 @@ void LidarSelector::createPatchFromPatchWithBorder(float* patch_with_border, flo
       ref_patch_ptr[x] = ref_patch_border_ptr[x];
   }
 }
+#endif
 
 void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
 {
@@ -526,9 +519,9 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
 
             // t_3 += omp_get_wtime() - t_1;
 
-            float* patch_wrap = new float[patch_size_total*3];
+            std::vector<float> patch_wrap(patch_size_total * 3);
 
-            patch_wrap = ref_ftr->patch;
+            // patch_wrap = ref_ftr->patch;
 
             // t_1 = omp_get_wtime();
            
@@ -556,16 +549,16 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
 
             // t_1 = omp_get_wtime();
 
-            for(int pyramid_level=0; pyramid_level<=0; pyramid_level++)
+            for(int pyramid_level=0; pyramid_level<=2; pyramid_level++)
             {                
-                warpAffine(A_cur_ref_zero, ref_ftr->img, ref_ftr->px, ref_ftr->level, search_level, pyramid_level, patch_size_half, patch_wrap);
+                warpAffine(A_cur_ref_zero, ref_ftr->img, ref_ftr->px, ref_ftr->level, search_level, pyramid_level, patch_size_half, patch_wrap.data());
             }
 
-            getpatch(img, pc, patch_cache, 0);
+            getpatch(img, pc, patch_cache.data(), 0);
 
             if(ncc_en)
             {
-                double ncc = NCC(patch_wrap, patch_cache, patch_size_total);
+                double ncc = NCC(patch_wrap.data(), patch_cache.data(), patch_size_total);
                 if(ncc < ncc_thre) continue;
             }
 
@@ -578,15 +571,12 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
             
             sub_map_cur_frame_.push_back(pt);
 
-            sub_sparse_map->align_errors.push_back(error);
             sub_sparse_map->propa_errors.push_back(error);
             sub_sparse_map->search_levels.push_back(search_level);
             sub_sparse_map->errors.push_back(error);
-            sub_sparse_map->index.push_back(i);  //index
+            sub_sparse_map->index.push_back(i);  
             sub_sparse_map->voxel_points.push_back(pt);
-            sub_sparse_map->patch.push_back(patch_wrap);
-            // sub_sparse_map->px_cur.push_back(pc);
-            // sub_sparse_map->propa_px_cur.push_back(pc);
+            sub_sparse_map->patch.push_back(std::move(patch_wrap));
             // t_5 += omp_get_wtime() - t_1;
         }
     }
@@ -596,6 +586,7 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
     printf("[ VIO ]: choose %d points from sub_sparse_map.\n", int(sub_sparse_map->index.size()));
 }
 
+#ifdef FeatureAlign
 bool LidarSelector::align2D(
     const cv::Mat& cur_img,
     float* ref_patch_with_border,
@@ -747,6 +738,7 @@ void LidarSelector::FeatureAlignment(cv::Mat img)
         }
     }
 }
+#endif
 
 float LidarSelector::UpdateState(cv::Mat img, float total_residual, int level) 
 {
@@ -823,7 +815,7 @@ float LidarSelector::UpdateState(cv::Mat img, float total_residual, int level)
             const float w_ref_bl = (1.0-subpix_u_ref) * subpix_v_ref;
             const float w_ref_br = subpix_u_ref * subpix_v_ref;
             
-            float* P = sub_sparse_map->patch[i];
+            vector<float> P = sub_sparse_map->patch[i];
             for (int x=0; x<patch_size; x++) 
             {
                 uint8_t* img_ptr = (uint8_t*) img.data + (v_ref_i+x*scale-patch_size_half*scale)*width + u_ref_i-patch_size_half*scale;
@@ -930,13 +922,8 @@ void LidarSelector::addObservation(cv::Mat img)
         V2D pc(new_frame_->w2c(pt->pos_));
         SE3 pose_cur = new_frame_->T_f_w_;
         bool add_flag = false;
-        // if (sub_sparse_map->errors[i]<= 100*patch_size_total && sub_sparse_map->errors[i]>0) //&& align_flag[i]==1) 
+        // if (sub_sparse_map->errors[i]<= 100*patch_size_total && sub_sparse_map->errors[i]>0)
         {
-            float* patch_temp = new float[patch_size_total*3];
-            getpatch(img, pc, patch_temp, 0);
-            getpatch(img, pc, patch_temp, 1);
-            getpatch(img, pc, patch_temp, 2);
-
             //TODO: condition: distance and view_angle 
             // Step 1: time
             FeaturePtr last_feature =  pt->obs_.back();
@@ -966,7 +953,7 @@ void LidarSelector::addObservation(cv::Mat img)
             {
                 pt->value = vk::shiTomasiScore(img, pc[0], pc[1]);
                 Vector3d f = cam->cam2world(pc);
-                FeaturePtr ftr_new(new Feature(patch_temp, pc, f, new_frame_->T_f_w_, pt->value, sub_sparse_map->search_levels[i])); 
+                FeaturePtr ftr_new(new Feature(pc, f, new_frame_->T_f_w_, pt->value, sub_sparse_map->search_levels[i])); 
                 ftr_new->img = new_frame_->img_pyr_[0];
                 ftr_new->id_ = new_frame_->id_;
                 // ftr_new->ImgPyr.resize(5);

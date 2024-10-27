@@ -31,8 +31,8 @@ class LidarSelector {
     int* map_index;
     float* map_dist;
     float* map_value;
-    float* patch_cache;
     float* patch_with_border_;
+    vector<float> patch_cache;
     int width, height, grid_n_width, grid_n_height, length;
     SubSparseMap* sub_sparse_map;
     double fx,fy,cx,cy;

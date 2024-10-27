@@ -227,22 +227,6 @@ struct SparseMap
         this->Rcl << MAT_FROM_ARRAY(R);
         this->Pcl << VEC_FROM_ARRAY(P);
     };   
-        
-    void delete_points()
-    {
-        int size = this->points.size();
-        if (size>1000) 
-        {
-            this->points.erase(this->points.begin(), this->points.begin()+size-1000);
-            this->patch.erase(this->patch.begin(), this->patch.begin()+size-1000);
-            this->values.erase(this->values.begin(), this->values.begin()+size-1000);
-            this->imgs.erase(this->imgs.begin(), this->imgs.begin()+size-1000);
-            this->R_ref.erase(this->R_ref.begin(), this->R_ref.begin()+size-1000);
-            this->P_ref.erase(this->P_ref.begin(), this->P_ref.begin()+size-1000);
-            this->px.erase(this->px.begin(), this->px.begin()+size-1000);
-            this->xyz_ref.erase(this->xyz_ref.begin(), this->xyz_ref.begin()+size-1000);
-        }
-    }
 
     void reset()
     {
@@ -282,59 +266,28 @@ namespace lidar_selection
         vector<float> propa_errors;
         vector<float> errors;
         vector<int> index;
-        vector<float*> patch;
-        vector<float*> patch_with_border;
-        vector<V2D> px_cur;
-        vector<V2D> propa_px_cur;
+        vector<vector<float>> patch;
         vector<int> search_levels;
         vector<PointPtr> voxel_points;
 
         SubSparseMap()
         {
-            this->align_errors.clear();
+            this->propa_errors.reserve(500);
+            this->search_levels.reserve(500);
+            this->errors.reserve(500);
+            this->index.reserve(500);
+            this->patch.reserve(500);
+            this->voxel_points.reserve(500);
+        };
+
+        void reset()
+        {
             this->propa_errors.clear();
             this->search_levels.clear();
             this->errors.clear();
             this->index.clear();
             this->patch.clear();
-            this->patch_with_border.clear();
-            this->px_cur.clear(); //Feature Alignment
-            this->propa_px_cur.clear();
             this->voxel_points.clear();
-        };
-
-        void reset()
-        {
-            vector<float>().swap(this->align_errors);
-            this->align_errors.reserve(500);
-            
-            vector<float>().swap(this->propa_errors);
-            this->propa_errors.reserve(500);
-            
-            vector<int>().swap(this->search_levels);
-            this->search_levels.reserve(500);
-
-            vector<float>().swap(this->errors);
-            this->errors.reserve(500);
-
-            vector<int>().swap(this->index);
-            this->index.reserve(500);
-
-            vector<float*>().swap(this->patch);
-            this->patch.reserve(500);
-
-            vector<float*>().swap(this->patch_with_border);
-            this->patch_with_border.reserve(500);
-
-            vector<V2D>().swap(this->px_cur);  //Feature Alignment
-            this->px_cur.reserve(500);
-
-            vector<V2D>().swap(this->propa_px_cur);
-            this->propa_px_cur.reserve(500);
-
-            this->voxel_points.clear();
-            // vector<PointPtr>().swap(this->voxel_points);
-            this->voxel_points.reserve(500);
         }
     };
 }
