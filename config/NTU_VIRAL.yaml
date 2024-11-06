@@ -14,6 +14,7 @@ ncc_en: true
 ncc_thre: 0.5
 img_point_cov : 1000
 laser_point_cov : 0.001
+pose_output_en: false
 delta_time: 0.0
 
 common:

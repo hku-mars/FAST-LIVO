@@ -211,6 +211,8 @@ PointCloudXYZRGB::Ptr pcl_wait_save(new PointCloudXYZRGB());  //add save rbg map
 PointCloudXYZI::Ptr pcl_wait_save_lidar(new PointCloudXYZI());  //add save xyzi map
 
 bool pcd_save_en = true;
+bool pose_output_en = true;
+
 int pcd_save_interval = 20, pcd_index = 0;
 
 
@@ -1130,6 +1132,7 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<double>("outlier_threshold",outlier_threshold,100);
     nh.param<double>("ncc_thre", ncc_thre, 100);
     nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
+    nh.param<bool>("pose_output_en", pose_output_en, false);
     nh.param<double>("delta_time", delta_time, 0.0);
 }
 
@@ -1236,10 +1239,11 @@ int main(int argc, char** argv)
     string pos_log_dir = root_dir + "/Log/pos_log.txt";
     fp = fopen(pos_log_dir.c_str(),"w");
 
-    ofstream fout_pre, fout_out, fout_dbg;
+    ofstream fout_pre, fout_out, fout_tum;
     fout_pre.open(DEBUG_FILE_DIR("mat_pre.txt"),ios::out);
     fout_out.open(DEBUG_FILE_DIR("mat_out.txt"),ios::out);
-    fout_dbg.open(DEBUG_FILE_DIR("dbg.txt"),ios::out);
+    fout_tum.open(DEBUG_FILE_DIR("camera_pose.txt"),ios::out);
+
     // if (fout_pre && fout_out)
     //     cout << "~~~~"<<ROOT_DIR<<" file opened" << endl;
     // else
@@ -1730,6 +1734,18 @@ int main(int argc, char** argv)
         
         // cout<<"[ mapping ]: iteration count: "<<iterCount+1<<endl;
         #endif
+
+        if(pose_output_en)
+        {
+            SE3 T_cam_world = lidar_selector->new_frame_->T_f_w_;
+            Eigen::Vector3d t = T_cam_world.translation();  
+            Eigen::Quaterniond q(T_cam_world.rotation_matrix()); 
+            fout_tum << std::fixed << std::setprecision(6)
+                    << LidarMeasures.lidar_beg_time << " "
+                    << t.x() << " " << t.y() << " " << t.z() << " "
+                    << q.x() << " " << q.y() << " " << q.z() << " " << q.w()
+                    << std::endl;
+        }
         // SaveTrajTUM(LidarMeasures.lidar_beg_time, state.rot_end, state.pos_end);
         double t_update_end = omp_get_wtime();
         /******* Publish odometry *******/
@@ -1840,6 +1856,7 @@ int main(int argc, char** argv)
 
     fout_out.close();
     fout_pre.close();
+    fout_tum.close();
 
     return 0;
 }
