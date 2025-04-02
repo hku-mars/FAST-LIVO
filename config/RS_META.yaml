@@ -1,0 +1,138 @@
+# 传感器内外参从calibration.yaml读取
+
+# 传感器消息话题
+topic:
+    lid_topic: /rs_lidar/points
+    imu_topic: /rs_imu
+    img_topic: /rs_camera/rgb
+    # compressed_img_topic: /rs_camera/rgb # 临时手动选择 压缩话题是否同名等待商议
+
+# 传感器开关
+img_enable : 1 # 0代表不使用图像 LIO模式
+lidar_enable : 1 # 0代表不使用激光雷达 VIO模式
+
+# 传感器优化权重
+img_point_cov : 0.1 # 可以调整. 已按照超传标准分辨率设置，内部自动除以缩放系数img_scaling_ratio平方
+laser_point_cov : 0.0005 # 可以调整
+
+# IMU权重 (注意：室内外参数差异较大，室内参考rs_data_config/RS_META_indoor.yaml， 室外参考RS_META_outdoor.yaml)
+use_cfg_cov: false # IMU协方差是否使用配置中的， false则自动计算
+# cov_acc: 0.1
+# cov_gyr: 0.1
+# cov_bias_acc: 0.0001
+# cov_bias_gyr: 0.0001
+# init_cov_rot: 1
+# init_cov_pos: 1
+# init_cov_vel: 1
+# init_cov_bias_gyr: 1e-4
+# init_cov_bias_acc: 1e-3
+
+# LIO
+point_filter_num : 1 # lidar点云采样频率 可以调整, 如果想滤除拖点必须设为1
+max_iteration : 5 # 最大优化次数 可以调整
+filter_size_surf : 0.3 # source点栅格尺寸 可以调整 室内减小 (注意：室内外参数差异较大)
+filter_size_map : 0.3 # ikdtree地图栅格尺寸 可以调整 室内减小
+cube_side_length : 20 # 点云地图格子尺寸（m）
+lidar_max_range: 30 # lidar测距范围， 过大导致地图点过多降低性能
+
+# VIO
+grid_size : 40 # 图像地图格子尺寸（像素） 控制图像点密度，越大点越少. 已按照超传标准分辨率设置，内部自动乘以缩放系数img_scaling_ratio
+patch_size : 20 #24 # 图像patch尺寸（像素）可以调整 越小越快. 已按照超传标准分辨率设置，内部自动乘以缩放系数img_scaling_ratio
+
+# RS新功能
+rs:
+    delay_t: 0.5 # 算法滞后时间，避免旧数据插入buffer (s)
+
+    # LIO
+    boundary_point_remove: true # 滤除拖点
+    downsample_source_cloud: true # 是否给source降采样
+    p2plane_thresh:  0.5 # 有效匹配点对距离(m)
+
+    # VIO
+    vis_down_leaf: 0.5 # 点云投影到地图前降采样 (m)
+    VIO_wait_time: 0 #2. # VIO初始化等待时间
+    use_map_proj: true # 使用点云地图投影， 扩大img特征点范围。 仅用于LIDAR FOV小于CAM
+
+    light_min_thresh:  2 #3 #5.0 # 光度标准差阈值， 光度变化小的patch被滤除
+    sub_sparse_map_error_thresh: 5  # 平均光度误差，用于可视化
+    depth_continuous_thresh: 1.5 # (m)
+    global_map_voxel_size: 0.5 # 0.5 (m)
+    max_layer: 3
+    max_obs_num: 20
+
+    enable_normal_filter: true # 过滤提供给提供VIO的lidar噪点
+    norm_thresh: 80 #60  # 平面法线与光心射线夹角阈值，过大的平面被滤除。 (度)
+    weight: 1 # 0.5 噪点降权
+    # 将lidar地图投影到图像，召回特征点
+    z_thresh: 20 # 高于阈值被过滤
+    y_thresh: 20
+    x_thresh: 20
+    weight2_ref_depth: -10. #10. # -10 基于不确定度的权重,期望全场景都具有泛化性; 0 固定权重１; 任意正数x，按相机观测距离线性降权, xm处权重为1。 对近处点降权，适用斜视场景，如草地。对于深度差过大的场景会降低精度。(米)
+
+    # 过滤视觉特征
+    img_filter:
+        cam_keep_period: 3 # 每3留1, -1代表用时间过滤
+        delta_time: 0 # 图像时间戳修正 (s)
+        img_scaling_ratio: 0.5 # 图像缩放系数，用于降低分辨率 推荐0.3~0.7
+        map_value_thresh: 10 # 角点响应值最小值，低于过滤
+        outlier_threshold : 1500 # 78 100 156 # 视觉patch残差阈值，大于则过滤 可以调整 越小越快
+        ncc_en: false
+        ncc_thre: 0
+        remove_down_pixel: 2500 # img行裁剪，正数代表大于该行被滤除，负数代表小于绝对值的行被滤除
+        uniform_feature: 0 # 非0代表开启，数值*patch_size_half 为非极大值抑制的半径
+        exp_num_per_grid: 3 # 非极大值抑制，每个格子保留几个特征点
+        patch_num_max: 200 # 选取响应值最大的前若干点
+        source_base_weight: -1 # patch基础权重。>0代表按到图像中心的距离降权(因为图像畸变，远处误差大)
+        target_base_weight: -1
+    
+    # 退化检测
+    degeneration:
+        vis_degenerate_thresh: 0.1 # 0.35 # 视觉退化阈值，低于此值退化成LIO (注意：室内外参数差异较大)
+        detect_lidar_degenetate: true # 开启点云退化检测
+        lidar_degenerate_thresh: 0.05 # 0.15 # 点云退化阈值
+        reset_state_when_degenerate: true # 点云退化时重置状态
+    
+    # debug
+    rs_debug: false
+    print_log: false
+    save_log: false
+
+    # 可视化
+    vio_pub:
+        pub_noise_cloud: false # 发布噪声点云
+        pub_all_cloud: false # 发布所有点云
+        depth_color_range: 5 # L系下x 5m内颜色渐变
+    visualize:
+        trans_imu_to_lidar: true # 是否把IMU数据转到Lidar系
+        pub_dense_map: true # 地图是否稠密（非降采样）
+        show_lidar_map: true # 发布强度地图
+        show_rgb_map: true # 发布rgb地图
+
+pcd_save:
+    pcd_save_en: false
+    ply_save_en: false
+    save_frame_mode: "" # "single_pcd" "sinlge_ply" "whole_pcd" or "whole_ply"
+    voxel_size: 0.03 # >0额外保存降栅格采样点云。(米)
+
+    # 读取pcd并降采样
+    pcd_in: "xxx.pcd"
+    pcd_out: "xxx.pcd" # 支持.pcd .ply
+
+preprocess:
+    lidar_type: 2 # 1:Livox LiDAR  2:RS Meta(AC)  3:OUST64  4:XT32  5:Mid360
+    scan_line: 4 # 16  64  32
+    blind: 0.5 # blind x m disable
+    blind_max: 100.0
+
+imu:
+    vrw: 1e-1
+    arw: 1e-2
+    sigma_ba: 1e-3
+    sigma_bg: 1e-4 
+    cov_acc: 1e-4 #2.5e-1
+    cov_gyr: 1e-6 #9e-2
+
+local_map:  
+  map_sliding_en: false
+  half_map_length: 50.
+  sliding_thresh: 8.

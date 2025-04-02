@@ -56,6 +56,14 @@ public:
   int                         last_structure_optim_;    //!< Timestamp of last point optimization
   bool                        have_scaled;
   float                       value;
+  float weight_;
+  float weight_2_{1.};
+  int is_valid_{1};
+  Vector2d pixel_;
+
+  float curvature_{-1.};
+
+  static void resetStatics();
   Point(const Vector3d& pos);
   Point(const Vector3d& pos, FeaturePtr ftr);
   ~Point();
@@ -79,6 +87,7 @@ public:
 
   /// Get Frame with similar viewpoint.
   bool getCloseViewObs(const Vector3d& pos, FeaturePtr& obs, const Vector2d& cur_px) const;
+  bool getBestViewObs(const Vector3d& pos, FeaturePtr& obs, const Vector2d& cur_px) const;
 
   bool getCloseViewObs_test(const Vector3d& pos, FeaturePtr& obs, const Vector2d& cur_px, double& min_cos_angle) const;
 

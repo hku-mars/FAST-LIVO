@@ -1,0 +1,14 @@
+<launch>
+<!-- Launch file for Robosense MetaS( Active Camera ) LiDAR -->
+
+	<arg name="rviz" default="true" />
+
+	<node pkg="slam" type="slam_node" name="laserMapping" output="screen" >
+	</node>
+	
+	<group if="$(arg rviz)">
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find slam)/rviz_cfg/meta.rviz" />
+	</group>
+launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
+
+</launch> 	

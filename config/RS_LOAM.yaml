@@ -1,0 +1,51 @@
+lidar_odometry:
+  hardware_setup:
+    MINIMUM_RANGE: 0.
+###Meta
+###AC1_1.0 yaw: 52~127 pit: -45~45
+    # N_SCAN: 144 # 90/0.625
+    # Horizon_SCAN: 120 # 75/0.625
+    # ang_bottom: 45
+    # groundScanInd: 50
+    # ang_res_x: 0.625
+    # ang_res_y: 0.625
+###AC1_2.0 yaw: 25~155 pit: -30~30
+    N_SCAN: 96 # 60/0.625
+    Horizon_SCAN: 240 # 130/0.625
+    ang_bottom: 30
+    groundScanInd: 50
+    ang_res_x: 0.625
+    ang_res_y: 0.625
+###m1p
+    # N_SCAN: 125 # 25/0.2
+    # Horizon_SCAN: 600 # 120/0.2
+    # ang_bottom: 12.5
+    # groundScanInd: 80
+###ruby
+    # N_SCAN: 200 # 40/0.2
+    # Horizon_SCAN: 2700 # 600 for m1p, 2700 for ruby
+    # ang_bottom: 25 # 12.5 for m1p, 25 for ruby
+    # groundScanInd: 125 # 25/0.2
+###E1
+###Airy
+###EM4
+    # N_SCAN: 250 # 25/0.1
+    # Horizon_SCAN: 1200 # 120/0.05
+    # ang_bottom: 12.5
+    # ang_res_x: 0.1 # 列分辨率 (度)
+    # ang_res_y: 0.1 # 行分辨率 (度) 实际0.05
+  image_projection:
+    sensorMinimumRange: 0.0
+    z_thresh: -999. # 地面阈值，米
+    segmentTheta: 5 # 聚类阈值，度 # 约大类越多
+  noise_filter:
+    curva_thresh: 4.8 # 深度不连续角度，(度)。减小提高噪点召回率。角分辨率越小，该值应该越小，推荐: Meta(0.625°) 4.8, MX 0.4
+
+    # 召回地图平面
+    recall_map_plane_thresh: -0.8 # 邻域地图点平均夹角阈值，小于认为是平面，度。-1表示不召回平面
+
+    # 召回scan平面
+    radius: 2 #2 # 拟合平面用到的2D深度图邻域半径
+    fit_plane_dist_thresh: 0.05 # scan平面拟合阈值，米，低于表示平面度高
+    recall_scan_plane_thresh: 1 # 点云2D深度图邻域拟合平面距离阈值，度。
+    pca_thresh: [0.01, 1, 0.0001] # scan平面PCA特征值阈值, 低于表示退化度高，分别对应最大值，次小值，最小值

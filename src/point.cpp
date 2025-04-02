@@ -22,6 +22,11 @@ namespace lidar_selection {
 
 int Point::point_counter_ = 0;
 
+void Point::resetStatics()
+{
+  point_counter_ = 0;
+}
+
 Point::Point(const Vector3d& pos) :
   id_(point_counter_++),
   pos_(pos),
@@ -173,6 +178,47 @@ bool Point::getCloseViewObs(const Vector3d& framepos, FeaturePtr& ftr, const Vec
     // ROS_ERROR("The obseved angle is larger than 60°.");
     return false;
   }
+
+  return true;
+}
+
+bool Point::getBestViewObs(const Vector3d& framepos, FeaturePtr& ftr, const Vector2d& cur_px) const
+{
+  // TODO: get frame with same point of view AND same pyramid level!
+  if(obs_.size() <= 0) return false;
+
+  Vector3d obs_dir(framepos - pos_); obs_dir.normalize();
+  if(normal_.dot(obs_dir)<0.173648178) return false;
+  auto min_it=obs_.begin();
+  double min_cos_angle = 0;
+
+  for(auto it=obs_.begin(), ite=obs_.end(); it!=ite; ++it)
+  {
+    Vector3d dir((*it)->T_f_w_.inverse().translation() - pos_); dir.normalize();
+    // double cos_angle = obs_dir.dot(dir);
+    double cos_angle = normal_.dot(dir);
+    if(cos_angle > min_cos_angle)
+    {
+      min_cos_angle = cos_angle;
+      min_it = it;
+    }
+  }
+  ftr = *min_it;
+  
+  // Vector2d ftr_px = ftr->px;
+  // double pixel_dist = (cur_px-ftr_px).norm();
+  
+  // if(pixel_dist > 200) 
+  // {
+  //   ROS_ERROR("The pixel dist exceeds 200.");
+  //   return false;    
+  // }
+    
+  // if(min_cos_angle < 0.5) // assume that observations larger than 60° are useless 0.5
+  // {
+  //   // ROS_ERROR("The obseved angle is larger than 60°.");
+  //   return false;
+  // }
 
   return true;
 }

@@ -1,59 +1,47 @@
-# FAST-LIVO
+# RS-FAST-LIVO
 
-## Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry
-
-**3 July 2024**: We are excited to announce the upcoming release of [**FAST-LIVO2**](https://github.com/hku-mars/FAST-LIVO2) (some high-resolution results are already showcased). This new version delivers a **overwhelming enhancement** over **FAST-LIVO**, establishing an **undisputed state-of-the-art** in accuracy **(pixel-level)**, efficiency **(the first LIVO system applied for fully onboard autonomous UAV navigation)**, and robustness **(validated with over 2TB data, demonstrating exceptional performance in numerous degenerated LiDAR and camera scenarios)**.
-
-**7 Dec 2023**: A **detailed step-by-step guide** for hard synchronization between Livox Mid-360/Avia and camera is published at [**LIV_hanheld**](https://github.com/sheng00125/LIV_handhold).
+[中文介绍](README_CN.md) 
 
 ## 1. Introduction
 
-**FAST-LIVO** is a fast LiDAR-Inertial-Visual odometry system, which builds on two tightly-coupled and direct odometry subsystems: a VIO subsystem and a LIO subsystem. The LIO subsystem registers raw points (instead of feature points on e.g., edges or planes) of a new scan to an incrementally-built point cloud map. The map points are additionally attached with image patches, which are then used in the VIO subsystem to align a new image by minimizing the direct photometric errors without extracting any visual features (e.g., ORB or FAST corner features).
+This repository adapts the state-of-the-art LiDAR-Inertial-Visual odometry system, `FAST-LIVO`, to   our lidar product Active Camera.
 
-**Contributors**: [Chunran Zheng 郑纯然](https://github.com/xuankuzcr)， [Qingyan Zhu 朱清岩](https://github.com/ZQYKAWAYI)， [Wei Xu 徐威](https://github.com/XW-HKU)
+**FAST-LIVO** is a fast LiDAR-Inertial-Visual odometry system, which builds on two tightly-coupled and direct odometry subsystems: a VIO subsystem and a LIO subsystem. The LIO subsystem registers raw points (instead of feature points on e.g., edges or planes) of a new scan to an incrementally-built point cloud map. The map points are additionally attached with image patches, which are then used in the VIO subsystem to align a new image by minimizing the direct photometric errors without extracting any visual features (e.g., ORB or FAST corner features).
 
 <div align="center">
     <img src="img/Framework.svg" width = 100% >
 </div>
 
-### 1.1 Our paper
+If you need further information about the `FAST-LIVO` algorithm, you can refer to their official website and contributors:
+- **Website**: <https://github.com/hku-mars/FAST-LIVO>
+- **Contributors**: [Chunran Zheng 郑纯然](https://github.com/xuankuzcr)， [Qingyan Zhu 朱清岩](https://github.com/ZQYKAWAYI)， [Wei Xu 徐威](https://github.com/XW-HKU)
 
-Our paper has been accepted to **IROS2022**, which is now available on **arXiv**:  [FAST-LIVO: Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry](https://arxiv.org/abs/2203.00893).
+## 2. Demos
 
-If our code is used in your project, please cite our paper following the bibtex below:
+The following examples show mapping outputs captured with the RoboSense AC sensor in both outdoor and indoor environments. Demo data can be downloaded at [wiki page](https://robosense-wiki-en.readthedocs.io/en/latest/index.html)
 
-```
-@article{zheng2022fast,
-  title={FAST-LIVO: Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry},
-  author={Zheng, Chunran and Zhu, Qingyan and Xu, Wei and Liu, Xiyuan and Guo, Qizhi and Zhang, Fu},
-  journal={arXiv preprint arXiv:2203.00893},
-  year={2022}
-}
-```
-
-### 1.2 Our related video
-
-Our accompanying videos are now available on **YouTube** (click below images to open) and [**Bilibili**](https://www.bilibili.com/video/BV15q4y1i7sj?spm_id_from=333.337.search-card.all.click).
-
-<div align="center">
-<a href="https://www.youtube.com/watch?v=C6Pb_0W9E_g" target="_blank"><img src="img/cover.bmp" alt="video" width="60%" /></a>
+<div align="center">   
+    <img src="img/hitsz.png" alt="mesh" /> 
+    <p style="margin-top: 2px;">"HIT SZ Wall" sequence. left: raw image, right: mapping result</p>
 </div>
 
-## 2. Prerequisited
+<div align="center">   
+    <img src="img/hitsz_full.png" alt="mesh" /> 
+    <p style="margin-top: 2px;">"HIT SZ Wall" sequence. full mapping result</p>
+</div>
 
-### 2.1 Ubuntu and ROS
+<div align="center">   
+    <img src="img/robosense_logo.png" alt="mesh" /> 
+    <p style="margin-top: 2px;"> "indoor robosense logo" sequence. left: raw image, right: full mapping result </p>
+</div>
 
-Ubuntu 16.04~20.04.  [ROS Installation](http://wiki.ros.org/ROS/Installation).
+## 3. Prerequisited
 
-### 2.2 PCL && Eigen && OpenCV
+### 3.1 ROS1 or ROS2
 
-PCL>=1.6, Follow [PCL Installation](https://pointclouds.org/). 
+Follow the specified content in the [official tutorial](https://fishros.org/doc/ros2/humble/Installation.html) for your operating system.
 
-Eigen>=3.3.4, Follow [Eigen Installation](https://eigen.tuxfamily.org/index.php?title=Main_Page).
-
-OpenCV>=3.2, Follow [Opencv Installation](http://opencv.org/).
-
-### 2.3 Sophus
+### 3.2 Sophus
 
  Sophus Installation for the non-templated/double-only version.
 
@@ -66,38 +54,33 @@ make
 sudo make install
 ```
 
-### 2.4 Vikit
+## 4. Install and Build
 
-Vikit contains camera models, some math and interpolation functions that we need. Vikit is a catkin project, therefore, download it into your catkin workspace source folder.
+### ROS1
+
+Clone this repository into a create an existing ros1 workspace and execute the following command to build:
 
 ```bash
-cd catkin_ws/src
-git clone https://github.com/uzh-rpg/rpg_vikit.git
+cd <your_workspace>
+catkin_make # or catkin build
 ```
 
-### 2.5 **livox_ros_driver**
 
-Follow [livox_ros_driver Installation](https://github.com/Livox-SDK/livox_ros_driver).
+### ROS2
 
-## 3. Build
+Clone this repository into a  create an existing `ros2` workspace and execute the following command to build and install:  
 
-Clone the repository and catkin_make:
-
-```
-cd ~/catkin_ws/src
-git clone https://github.com/hku-mars/FAST-LIVO
-cd ../
-catkin_make
-source ~/catkin_ws/devel/setup.bash
+```bash
+colcon build --symlink-install 
 ```
 
 ## 4. Run the package
 
-Please note that our system can only work in the hard synchronized LiDAR-Inertial-Visual dataset at present due to the unestimated time offset between the camera and IMU. The frame headers of the camera and the LiDAR are at the same physical trigger time.
-
 ### 4.1 Important parameters
 
-Edit `config/xxx.yaml` to set the below parameters:
+Edit `config/RS_META.yaml` to set the below parameters:
+
+#### 4.1.1 Algorithm
 
 - `lid_topic`: The topic name of LiDAR data.
 - `imu_topic`: The topic name of IMU data.
@@ -113,44 +96,37 @@ Edit `config/xxx.yaml` to set the below parameters:
 - `pcd_save_en`: If `true`, save point clouds to the PCD folder. Save RGB-colored points if `img_enable` is `1`, intensity-colored points if `img_enable` is `0`.
 - `delta_time`: The time offset between the camera and LiDAR, which is used to correct timestamp misalignment.
 
-After setting the appropriate topic name and parameters, you can directly run **FAST-LIVO** on the dataset.
+After setting the appropriate topic name and parameters, you can directly run **RS-FAST-LIVO** on the dataset.
 
-### 4.2 Run on private dataset
+#### 4.1.2 Extrinsics and intrinsics
 
-Download our collected rosbag files via OneDrive ([FAST-LIVO-Datasets](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/zhengcr_connect_hku_hk/Esiqlmaql0dPreuOhiHlXl4Bqu5RRRIViK1EyuR4h1_n4w?e=fZdVn0)) containing **4** rosbag files.
+Extrinsic and intrinsic parameters of the sensor are set in ```config/calibration.yaml```
 
-```
-roslaunch fast_livo mapping_avia.launch
-rosbag play YOUR_DOWNLOADED.bag
-```
 
-### 4.3 Run on benchmark dataset
+You don't need to change parameters in ```calibration.yaml``` 
 
-NTU-VIRAL
-```
-roslaunch fast_livo mapping_avia_ntu.launch
-rosbag play YOUR_DOWNLOADED.bag
-```
-MARS-LVIG
-```
-roslaunch fast_livo mapping_avia_marslvig.launch
-rosbag play YOUR_DOWNLOADED.bag
+
+### 4.2 Run
+
+#### ROS1
+
+```bash
+# In the root of your workspace
+source devel/setup.bash # replace setup.bash with setup.zsh if you're using zsh
+roslaunch slam mapping_meta.launch
 ```
 
-## 5. Our hard sychronized equipment
+#### ROS2
 
-To support the robotics community and enhance the reproducibility of our work, we provide CAD files for our handheld device, available in ".SLDPRT" and ".SLDASM" formats. These files can be opened and edited using Solidworks. Each module is designed for compatibility with FDM (Fused Deposition Modeling) technology, ensuring ease of 3D printing. Additionally, we open-source our **hardware synchronization scheme**, the **STM32 source code**, detailed **hardware wiring configuration instructions**, and **sensor ros driver**. Access these resources at our repository: [**LIV_handhold**](https://github.com/sheng00125/LIV_handhold).
+```bash
+source install/setup.bash
+ros2 run slam slam_node
+```
 
-![principle](./img/cover.jpg)
+## 5. Acknowledgments
 
-## 6. Acknowledgments
+Thanks for [FAST-LIVO](https://github.com/hku-mars/FAST-LIVO), [FAST-LIVO2](https://github.com/hku-mars/FAST-LIVO2) and [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono)
 
-Thanks for [FAST-LIO2](https://github.com/hku-mars/FAST_LIO) and [SVO2.0](https://github.com/uzh-rpg/rpg_svo_pro_open). Thanks for [Livox_Technology](https://www.livoxtech.com/) for equipment support.
+## 6. License
 
-Thanks [Jiarong Lin](https://github.com/ziv-lin) for the help in the experiments.
-
-## 7. License
-
-The source code of this package is released under [**GPLv2**](http://www.gnu.org/licenses/) license. We only allow it free for **academic usage**. For commercial use, please contact Dr. Fu Zhang [fuzhang@hku.hk](mailto:fuzhang@hku.hk).
-
-For any technical issues, please contact me via email [zhengcr@connect.hku.hk](mailto:zhengcr@connect.hku.hk).
+The source code of this package is released under [**GPLv2**](http://www.gnu.org/licenses/) license.

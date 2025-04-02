@@ -1,9 +1,15 @@
 #pragma once
+#ifdef _WIN32
+#include <windows.h>
+#define usleep(usec) Sleep((usec) / 1000)
+#endif
+
 #include <pcl/point_types.h>
 #include <Eigen/StdVector>
 #include <Eigen/Geometry>
 #include <stdio.h>
 #include <queue>
+#define HAVE_STRUCT_TIMESPEC
 #include <pthread.h>
 #include <chrono>
 #include <time.h>

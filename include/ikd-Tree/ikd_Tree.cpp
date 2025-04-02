@@ -1,4 +1,9 @@
 #include "ikd_Tree.h"
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 /*
 Description: ikd-Tree: an incremental k-d tree for robotic applications 
@@ -163,25 +168,31 @@ void KD_TREE::start_thread(){
     pthread_mutex_init(&working_flag_mutex, NULL);
     pthread_mutex_init(&search_flag_mutex, NULL);
     pthread_create(&rebuild_thread, NULL, multi_thread_ptr, (void*) this);
-    printf("Multi thread started \n");    
+    printf("[ ikdtree ] Multi thread started \n");    
 }
 
 void KD_TREE::stop_thread(){
     pthread_mutex_lock(&termination_flag_mutex_lock);
     termination_flag = true;
     pthread_mutex_unlock(&termination_flag_mutex_lock);
-    if (rebuild_thread) pthread_join(rebuild_thread, NULL);
+    #ifdef _WIN32
+      if (rebuild_thread.p) pthread_join(rebuild_thread, NULL);
+    #else
+      if (rebuild_thread) pthread_join(rebuild_thread, NULL);
+    #endif
     pthread_mutex_destroy(&termination_flag_mutex_lock);
     pthread_mutex_destroy(&rebuild_logger_mutex_lock);
     pthread_mutex_destroy(&rebuild_ptr_mutex_lock);
     pthread_mutex_destroy(&points_deleted_rebuild_mutex_lock);
     pthread_mutex_destroy(&working_flag_mutex);
     pthread_mutex_destroy(&search_flag_mutex);     
+    printf("[ ikdtree ] Multi thread closed \n");    
 }
 
 void * KD_TREE::multi_thread_ptr(void * arg){
     KD_TREE * handle = (KD_TREE*) arg;
     handle->multi_thread_rebuild();
+    return nullptr;
 }    
 
 void KD_TREE::multi_thread_rebuild(){
@@ -297,7 +308,7 @@ void KD_TREE::multi_thread_rebuild(){
         pthread_mutex_unlock(&termination_flag_mutex_lock);
         usleep(100); 
     }
-    printf("Rebuild thread terminated normally\n");    
+    printf("[ ikdtree ]Rebuild thread terminated normally\n");    
 }
 
 void KD_TREE::run_operation(KD_TREE_NODE ** root, Operation_Logger_Type operation){
@@ -521,11 +532,14 @@ int KD_TREE::Delete_Point_Boxes(vector<BoxPointType> & BoxPoints){
 }
 
 void KD_TREE::acquire_removed_points(PointVector & removed_points){
-    pthread_mutex_lock(&points_deleted_rebuild_mutex_lock); 
-    for (int i = 0; i < Points_deleted.size();i++){
+    pthread_mutex_lock(&points_deleted_rebuild_mutex_lock);
+    int size1 = Points_deleted.size();
+    int size2 = Multithread_Points_deleted.size();
+    removed_points.reserve(size1 + size2);
+    for (int i = 0; i < size1 ;i++){
         removed_points.push_back(Points_deleted[i]);
     }
-    for (int i = 0; i < Multithread_Points_deleted.size();i++){
+    for (int i = 0; i < size2 ;i++){
         removed_points.push_back(Multithread_Points_deleted[i]);
     }
     Points_deleted.clear();

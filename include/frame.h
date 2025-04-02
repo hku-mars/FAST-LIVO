@@ -50,6 +50,7 @@ public:
   vector<FeaturePtr>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
   bool                          is_keyframe_;           //!< Was this frames selected as keyframe
 
+  static void resetStatics();
   Frame(vk::AbstractCamera* cam, const cv::Mat& img);
   ~Frame();
 

@@ -28,7 +28,7 @@ Map::Map() {}
 Map::~Map()
 {
   reset();
-  cout<<"Map destructed"<<endl;
+  cout<<"[ lidar_selection ] Map destructed"<<endl;
 }
 
 void Map::reset()

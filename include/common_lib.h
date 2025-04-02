@@ -3,30 +3,16 @@
 
 #include <so3_math.h>
 #include <Eigen/Eigen>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <fast_livo/States.h>
-#include <fast_livo/Pose6D.h>
-#include <sensor_msgs/Imu.h>
-#include <cv_bridge/cv_bridge.h>
-#include <nav_msgs/Odometry.h>
-#include <tf/transform_broadcaster.h>
-#include <eigen_conversions/eigen_msg.h>
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
-#include <sophus/se3.h>
 #include <boost/shared_ptr.hpp>
 #include <unordered_map>
+#include <fstream>
+#include "common/common.h"
+#include "sophus/se3.h"
 
 using namespace std;
 using namespace Eigen;
 using namespace Sophus;
-
-// #define DEBUG_PRINT
-#define USE_ikdtree
-// #define USE_ikdforest
-// #define USE_IKFOM
-// #define USE_FOV_Checker
 
 #define print_line std::cout << __FILE__ << ", " << __LINE__ << std::endl;
 #define PI_M (3.14159265358)
@@ -34,73 +20,23 @@ using namespace Sophus;
 #define DIM_STATE (18)      // Dimension of states (Let Dim(SO(3)) = 3)
 #define DIM_PROC_N (12)      // Dimension of process noise (Let Dim(SO(3)) = 3)
 #define CUBE_LEN  (6.0)
-#define LIDAR_SP_LEN    (2)
 #define INIT_COV   (0.001)
 #define NUM_MATCH_POINTS    (5)
-#define MAX_MEAS_DIM        (10000)
 
 #define VEC_FROM_ARRAY(v)        v[0],v[1],v[2]
 #define MAT_FROM_ARRAY(v)        v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8]
 #define CONSTRAIN(v,min,max)     ((v>min)?((v<max)?v:max):min)
 #define ARRAY_FROM_EIGEN(mat)    mat.data(), mat.data() + mat.rows() * mat.cols()
 #define STD_VEC_FROM_EIGEN(mat)  vector<decltype(mat)::Scalar> (mat.data(), mat.data() + mat.rows() * mat.cols())
-#define DEBUG_FILE_DIR(name)     (string(string(ROOT_DIR) + "Log/"+ name))
 
 typedef fast_livo::Pose6D Pose6D;
-typedef pcl::PointXYZINormal PointType;
-typedef pcl::PointXYZRGB PointTypeRGB;
-typedef pcl::PointCloud<PointType> PointCloudXYZI;
-typedef vector<PointType, Eigen::aligned_allocator<PointType>>  PointVector;
-typedef pcl::PointCloud<PointTypeRGB> PointCloudXYZRGB;
-
-typedef Vector3d V3D;
-typedef Vector2d V2D;
-typedef Matrix3d M3D;
-typedef Vector3f V3F;
-typedef Matrix3f M3F;
-typedef std::vector<float> FloatArray;
-
-#define MD(a,b)  Matrix<double, (a), (b)>
-#define VD(a)    Matrix<double, (a), 1>
-#define MF(a,b)  Matrix<float, (a), (b)>
-#define VF(a)    Matrix<float, (a), 1>
 
 #define HASH_P 116101
 #define MAX_N 10000000000
-
-extern M3D Eye3d;
-extern M3F Eye3f;
-extern V3D Zero3d;
-extern V3F Zero3f;
-
-namespace lidar_selection
-{
-    class Point;
-    typedef std::shared_ptr<Point> PointPtr;
-    class VOXEL_POINTS
-    {
-    public:
-        std::vector<PointPtr> voxel_points;
-        int count;
-        // bool is_visited;
-
-        VOXEL_POINTS(int num): count(num){} 
-    };   
-    
-    class Warp
-    {
-    public:
-        Matrix2d A_cur_ref;      
-        int search_level;
-        // bool is_visited;
-
-        Warp(int level, Matrix2d warp_matrix): search_level(level), A_cur_ref(warp_matrix){} 
-    }; 
-}
+#define ADAPTIVE_INIT
 
 // Key of hash table
-class VOXEL_KEY
-{
+class VOXEL_KEY {
 
 public:
   int64_t x;
@@ -109,13 +45,11 @@ public:
 
   VOXEL_KEY(int64_t vx=0, int64_t vy=0, int64_t vz=0): x(vx), y(vy), z(vz){}
 
-  bool operator == (const VOXEL_KEY &other) const
-  {
+  bool operator==(const VOXEL_KEY &other) const {
     return (x==other.x && y==other.y && z==other.z);
   }
 
-  bool operator<(const VOXEL_KEY& p) const
-  {
+  bool operator<(const VOXEL_KEY &p) const {
     if (x < p.x) return true;
     if (x > p.x) return false;
     if (y < p.y) return true;
@@ -148,11 +82,14 @@ namespace std
 struct MeasureGroup     
 {
     double img_offset_time;
-    deque<sensor_msgs::Imu::ConstPtr> imu;
+    deque<slam::Imu::ConstPtr> imu;
     cv::Mat img;
+    slam::Imu::ConstPtr imu_next;
+    double last_img_time;
     MeasureGroup()
     {
         img_offset_time = 0.0;
+        last_img_time = 0;
     };
 };
 
@@ -164,6 +101,8 @@ struct LidarMeasureGroup
     std::deque<struct MeasureGroup> measures;
     bool is_lidar_end;
     int lidar_scan_index_now;
+    double last_lidar_time;
+    double lidar_end_time;
     LidarMeasureGroup()
     {
         lidar_beg_time = 0.0;
@@ -172,17 +111,17 @@ struct LidarMeasureGroup
         std::deque<struct MeasureGroup> ().swap(this->measures);
         lidar_scan_index_now = 0;
         last_update_time = 0.0;
+        last_lidar_time = 0;
     };
     void debug_show()
     {
         int i=0;
-        ROS_WARN("Lidar selector debug:");
         std::cout<<"last_update_time:"<<setprecision(20)<<this->last_update_time<<endl;
         std::cout<<"lidar_beg_time:"<<setprecision(20)<<this->lidar_beg_time<<endl;
         for (auto it = this->measures.begin(); it != this->measures.end(); ++it,++i) {
             std::cout<<"In "<<i<<" measures: ";
             for (auto it_meas=it->imu.begin(); it_meas!=it->imu.end();++it_meas) {
-                std::cout<<setprecision(20)<<(*it_meas)->header.stamp.toSec()-this->lidar_beg_time<<" ";
+                // std::cout<<setprecision(20)<<HeaderToSec((*it_meas)->header)-this->lidar_beg_time<<" ";
             }
             std::cout<<"img_time:"<<setprecision(20)<<it->img_offset_time<<endl;
         }
@@ -191,117 +130,15 @@ struct LidarMeasureGroup
     };
 };
 
-// struct Frames
-// {
-//     vector<cv::Mat> imgs;
-// };
-
-struct SparseMap
-{
-    vector<V3D> points;
-    vector<float*> patch;
-    vector<float> values;
-    vector<cv::Mat> imgs; 
-    vector<M3D> R_ref;
-    vector<V3D> P_ref;
-    vector<V3D> xyz_ref;
-    vector<V2D> px;
-    M3D Rcl;
-    V3D Pcl;
-    SparseMap()
-    {
-        this->points.clear();
-        this->patch.clear();
-        this->values.clear();
-        this->imgs.clear();
-        this->R_ref.clear();
-        this->P_ref.clear();
-        this->px.clear();
-        this->xyz_ref.clear();
-        this->Rcl = M3D::Identity();
-        this->Pcl = Zero3d;
-    } ;
-
-    void set_camera2lidar(vector<double>& R,  vector<double>& P )
-    {
-        this->Rcl << MAT_FROM_ARRAY(R);
-        this->Pcl << VEC_FROM_ARRAY(P);
-    };   
-
-    void reset()
-    {
-        this->points.clear();
-        this->patch.clear();
-        this->values.clear();
-        this->imgs.clear();
-        this->R_ref.clear();
-        this->P_ref.clear();
-        this->px.clear();
-        this->xyz_ref.clear();
-    }
-
-    void delete_point(int ind) 
-    {
-        this->points.erase(this->points.begin()+ind);
-        this->patch.erase(this->patch.begin()+ind);
-        this->values.erase(this->values.begin()+ind);
-        
-    }
-
-    void update_point(int ind, float* newP)
-    {
-        float* P = this->patch[ind];
-        for (int i=0; i<16; i++) {
-            P[i] = newP[i];
-        }
-        float v = fabs(2*(P[6]-P[4])+P[2]-P[0]+P[10]-P[8]) + fabs(2*(P[9]-P[1])+P[10]-P[2]+P[8]-P[0]);
-    }
-};
-
-namespace lidar_selection
-{
-    struct SubSparseMap
-    {
-        vector<float> align_errors;
-        vector<float> propa_errors;
-        vector<float> errors;
-        vector<int> index;
-        vector<vector<float>> patch;
-        vector<int> search_levels;
-        vector<PointPtr> voxel_points;
-
-        SubSparseMap()
-        {
-            this->propa_errors.reserve(500);
-            this->search_levels.reserve(500);
-            this->errors.reserve(500);
-            this->index.reserve(500);
-            this->patch.reserve(500);
-            this->voxel_points.reserve(500);
-        };
-
-        void reset()
-        {
-            this->propa_errors.clear();
-            this->search_levels.clear();
-            this->errors.clear();
-            this->index.clear();
-            this->patch.clear();
-            this->voxel_points.clear();
-        }
-    };
-}
-typedef boost::shared_ptr<SparseMap> SparseMapPtr;
-
 struct StatesGroup
 {
     StatesGroup() {
 		this->rot_end = M3D::Identity();
-		this->pos_end = Zero3d;
-        this->vel_end = Zero3d;
-        this->bias_g  = Zero3d;
-        this->bias_a  = Zero3d;
-        this->gravity = Zero3d;
+		this->pos_end = V3D::Zero();
+        this->vel_end = V3D::Zero();
+        this->bias_g  = V3D::Zero();
+        this->bias_a  = V3D::Zero();
+        this->gravity = V3D::Zero();
         this->cov     = Matrix<double,DIM_STATE,DIM_STATE>::Identity() * INIT_COV;
 	};
 
@@ -367,17 +204,28 @@ struct StatesGroup
     void resetpose()
     {
         this->rot_end = M3D::Identity();
-		this->pos_end = Zero3d;
-        this->vel_end = Zero3d;
+		this->pos_end = V3D::Zero();
+        this->vel_end = V3D::Zero();
     }
 
-	M3D rot_end;      // the estimated attitude (rotation matrix) at the end lidar point
+    void cmpBg(int line, std::string str) {
+        ofs << line << " " <<str << " "<< bias_g_test.transpose() <<" "<< bias_g.transpose() << "\n";
+      if (bias_g_test != bias_g) {
+        LWARNING << line << " " << (bias_g_test - bias_g).transpose() << REND;
+      }
+    }
+
+    M3D rot_end;      // the estimated attitude (rotation matrix) at the end lidar point
     V3D pos_end;      // the estimated position at the end lidar point (world frame)
     V3D vel_end;      // the estimated velocity at the end lidar point (world frame)
     V3D bias_g;       // gyroscope bias
     V3D bias_a;       // accelerator bias
     V3D gravity;      // the estimated gravity acceleration
     Matrix<double, DIM_STATE, DIM_STATE>  cov;     // states covariance
+    double time;
+    V3D bias_g_test;
+
+    std::ofstream ofs;
 };
 
 template<typename T>
@@ -490,6 +338,11 @@ bool esti_plane(Matrix<T, 4, 1> &pca_result, const PointVector &point, const T &
     // pca_result(2) = normvec(2) / n;
     // pca_result(3) = 1.0 / n; 
     return true;
+}
+
+inline float calc_dist(PointType p1, PointType p2){
+    float d = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
+    return d;
 }
 
 #endif

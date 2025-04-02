@@ -1,0 +1,72 @@
+feature_extract_enable : 0
+point_filter_num : 2
+max_iteration : 10
+dense_map_enable : 1
+filter_size_surf : 0.15
+filter_size_map : 0.3
+cube_side_length : 20
+grid_size : 40
+patch_size : 8
+img_enable : 1
+lidar_enable : 1
+outlier_threshold : 300 # 78 100 156
+ncc_en: false
+ncc_thre: 0
+img_point_cov : 100 # 1000
+laser_point_cov : 0.001 # 0.001
+pose_output_en: false
+delta_time: 0.0
+
+rs:
+    cam_keep_period: 1 #3 # 每3留1
+    lidar_time_is_tail: false
+    downsample_source_cloud: false
+    show_lidar_map: true
+    p2plane_thresh: 0.5
+
+    VIO_wait_time: 0 #2. # VIO初始化等待时间
+    use_map_proj: false #true #true #true #true # 使用点云地图投影， 扩大img特征点范围
+    map_roi_range: 10. # 周围点云地图范围
+
+    light_min_thresh:  0 #2 #3 #5.0 # 光度标准差阈值， 光度变化小的patch被滤除
+    sub_sparse_map_error_thresh: 2  #8000
+    depth_continuous_thresh: 1.5 #1.5
+    global_map_voxel_size: 0.5 # 0.5
+    # vis_degenerate_thresh: 100
+
+    enable_normal_filter: false #true
+    z_thresh: 20 # 高于阈值被过滤 IMU系=左上前
+    # y_thresh: 2
+    norm_thresh: 80 #80 # 平面法线与光心射线夹角阈值，过大的平面被滤除。 度数
+    weight: 1 #0.5 #0.8
+    rs_debug: true
+
+    vis_degenerate_thresh: 0 #0.4 #0.35
+
+common:
+    lid_topic:  "/livox/lidar"
+    imu_topic:  "/livox/imu"
+
+preprocess:
+    lidar_type: 1 # 1:Livox LiDAR  2:VELO16  3:OUST64  4:XT32  5:Mid360
+    scan_line: 6 # 16  64  32
+    blind: 4 # blind x m disable
+
+mapping:
+    acc_cov_scale: 100
+    gyr_cov_scale: 10000
+    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ] # horizon 0.05512, 0.02226, -0.0297
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+
+pcd_save:
+    pcd_save_en: false
+
+camera:
+    img_topic: /left_camera/image
+    Rcl: [0.00162756,-0.999991,0.00390957,
+         -0.0126748,-0.00392989,-0.999912,
+          0.999918,0.00157786,-0.012681]
+    Pcl: [0.0409257, 0.0318424, -0.0927219]
+    

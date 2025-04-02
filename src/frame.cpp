@@ -21,12 +21,19 @@
 #include <boost/bind.hpp>
 #include <vikit/math_utils.h>
 #include <vikit/vision.h>
-#include <vikit/performance_monitor.h>
+// #include <vikit/performance_monitor.h>
 // #include <fast/fast.h>
+
+#define RS_DEBUG 1
 
 namespace lidar_selection {
 
 int Frame::frame_counter_ = 0; 
+
+void Frame::resetStatics()
+{
+  frame_counter_ = 0;
+}
 
 Frame::Frame(vk::AbstractCamera* cam, const cv::Mat& img) :
     id_(frame_counter_++), 
@@ -75,9 +82,22 @@ void Frame::setKeyPoints()
     if(key_pts_[i] != nullptr)
       if(key_pts_[i]->point == nullptr)
         key_pts_[i] = nullptr;
-  std::for_each(fts_.begin(), fts_.end(), [&](FeaturePtr ftr){ if(ftr->point != nullptr) checkKeyPoints(ftr); });
+#if RS_DEBUG
+  int cnt = 0;
+  std::for_each(fts_.begin(), fts_.end(), [&](FeaturePtr ftr) {
+    if (ftr->point != nullptr)
+    {
+      LDEBUG<<"==setKeyPoints=="<<cnt<<" ftr is valid"<<REND;
+      checkKeyPoints(ftr);
+    }
+  });
+
+#else
+  // std::for_each(fts_.begin(), fts_.end(), [&](FeaturePtr ftr){ if(ftr->point != nullptr) checkKeyPoints(ftr); });
+#endif
 }
 
+// 检查并更新关键点，根据特征点的位置选择关键点 （离中心点更近，或离边界点更远的点 更新为新的特征点）
 void Frame::checkKeyPoints(FeaturePtr ftr)
 {
   const int cu = cam_->width()/2;
@@ -130,6 +150,13 @@ void Frame::checkKeyPoints(FeaturePtr ftr)
           > (cu-key_pts_[4]->px[0]) * (key_pts_[4]->px[1]-cv))      
       key_pts_[4] = ftr;
   }
+#if RS_DEBUG 
+  for(int i=0;i<5;++i)
+    if(key_pts_[i] == ftr)
+    {
+      LDEBUG << "==checkKeyPoints==key_pts: " << i << " updated" << REND;
+    }
+#endif
 }
 
 void Frame::removeKeyPoint(FeaturePtr ftr)

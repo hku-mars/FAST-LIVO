@@ -32,7 +32,7 @@ struct Feature
     CORNER,
     EDGELET
   };
-  int id_;
+  uint64_t id_;
   FeatureType type;     //!< Type can be corner or edgelet.
   Frame* frame;         //!< Pointer to frame in which the feature was detected.
   cv::Mat img;
@@ -48,6 +48,7 @@ struct Feature
   SE3 T_f_w_;
   // float* patch;
   Feature(const Vector2d& _px, const Vector3d& _f, const SE3& _T_f_w, const float &_score, int _level) :
+    id_(feat_counter_++),
     type(CORNER),
     px(_px),
     f(_f),
@@ -60,6 +61,9 @@ struct Feature
   {
     // printf("The feature %d has been destructed.", id_);
   }
+
+  static void resetStatics();
+  static uint64_t feat_counter_;  
 };
 
 } // namespace lidar_selection
